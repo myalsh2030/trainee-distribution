@@ -1,0 +1,2542 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>توزيع المتدربين على لجان الاختبارات</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="shared/css/main.css">
+    <!-- Lucide Icons - Outline/Line Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Wizard Styles */
+        .wizard-container {
+            --row-padding: 6px 5px;
+            /* Default row padding - level 3 */
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-dark);
+        }
+
+        .wizard-header {
+            background: var(--bg-card);
+            padding: 20px;
+            border-bottom: 1px solid var(--border-dark);
+            text-align: center;
+        }
+
+        .wizard-title {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--accent-gold);
+            margin-bottom: 5px;
+        }
+
+        .wizard-subtitle {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* Icon Buttons */
+        .btn-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: 1px solid var(--border-dark);
+            background: var(--bg-card);
+            color: var(--text-light);
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-icon:hover {
+            background: var(--accent-gold);
+            transform: scale(1.05);
+        }
+
+        /* Light Mode */
+        body.light-mode {
+            --bg-dark: #f5f7fa;
+            --bg-card: #ffffff;
+            --bg-table: #f0f2f5;
+            --bg-header: #e8ecf4;
+            --text-light: #1a202c;
+            --text-muted: #4a5568;
+            --border-dark: #d1d5db;
+        }
+
+        body.light-mode .wizard-container {
+            background: var(--bg-dark);
+        }
+
+        body.light-mode .report-page {
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        body.light-mode .alert.warning,
+        body.light-mode .alert.info {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #f59e0b;
+        }
+
+        body.light-mode .alert.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+
+        body.light-mode .disclaimer {
+            background: #e0e7ff;
+            color: #3730a3;
+        }
+
+        /* Age-based colors for report age */
+        .age-normal {
+            color: var(--accent-green);
+        }
+
+        .age-warning {
+            color: #f59e0b;
+            font-weight: 600;
+        }
+
+        .age-critical {
+            color: #ef4444;
+            font-weight: 700;
+        }
+
+        /* Steps Bar */
+        .steps-bar {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            padding: 20px;
+            background: var(--bg-header);
+            flex-wrap: wrap;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 25px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-dark);
+            cursor: not-allowed;
+            transition: all 0.3s;
+            opacity: 0.6;
+        }
+
+        .step.clickable {
+            cursor: pointer;
+            opacity: 1;
+        }
+
+        .step.clickable:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .step.active {
+            border-color: var(--accent-gold);
+            background: rgba(251, 191, 36, 0.1);
+            opacity: 1;
+        }
+
+        .step.completed {
+            border-color: var(--accent-green);
+            background: rgba(16, 185, 129, 0.1);
+            opacity: 1;
+        }
+
+        .step-number {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--border-dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 12px;
+        }
+
+        .step.active .step-number {
+            background: var(--accent-gold);
+            color: #000;
+        }
+
+        .step.completed .step-number {
+            background: var(--accent-green);
+            color: #fff;
+        }
+
+        .step-label {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .step.active .step-label {
+            color: var(--accent-gold);
+            font-weight: 600;
+        }
+
+        .step.completed .step-label {
+            color: var(--accent-green);
+        }
+
+        /* Content Area */
+        .wizard-content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .step-content {
+            display: none;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .step-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Navigation */
+        .wizard-nav {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            padding: 20px;
+            background: var(--bg-card);
+            border-top: 1px solid var(--border-dark);
+        }
+
+        .nav-btn {
+            padding: 12px 30px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .nav-btn.prev {
+            background: var(--bg-header);
+            color: var(--text-light);
+            border: 1px solid var(--border-dark);
+        }
+
+        .nav-btn.next {
+            background: linear-gradient(135deg, var(--accent-gold), #f59e0b);
+            color: #000;
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .nav-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+        }
+
+        /* Upload Section */
+        .upload-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .upload-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 25px;
+            border: 1px solid var(--border-dark);
+        }
+
+        .upload-card h3 {
+            font-size: 16px;
+            color: var(--accent-gold);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .upload-card .badge {
+            background: var(--accent-gold);
+            color: #000;
+            padding: 2px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+        }
+
+        .upload-card .badge.optional {
+            background: var(--border-dark);
+            color: var(--text-muted);
+        }
+
+        .upload-box {
+            border: 2px dashed var(--border-dark);
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 15px;
+        }
+
+        .upload-box:hover {
+            border-color: var(--accent-gold);
+            background: rgba(251, 191, 36, 0.05);
+        }
+
+        .upload-box.loaded {
+            border-color: var(--accent-green);
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .upload-icon {
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+
+        .file-info {
+            margin-top: 15px;
+            padding: 12px;
+            background: rgba(16, 185, 129, 0.1);
+            border-radius: 8px;
+            font-size: 12px;
+            display: none;
+        }
+
+        .file-info.show {
+            display: block;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        /* Info Cards */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .info-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid var(--border-dark);
+        }
+
+        .info-card .label {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+        }
+
+        .info-card .value {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--accent-gold);
+        }
+
+        /* Alert Box */
+        .alert {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-size: 13px;
+        }
+
+        .alert.error {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid var(--accent-red);
+            color: #fca5a5;
+        }
+
+        .alert.success {
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid var(--accent-green);
+            color: #86efac;
+        }
+
+        .alert.warning {
+            background: rgba(251, 191, 36, 0.15);
+            border: 1px solid var(--accent-gold);
+            color: #fcd34d;
+        }
+
+        .alert.info {
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid var(--accent-blue);
+            color: #93c5fd;
+        }
+
+        /* Select & Input */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .form-select,
+        .form-input {
+            width: 100%;
+            padding: 12px 15px;
+            border-radius: 10px;
+            border: 1px solid var(--border-dark);
+            background: var(--bg-card);
+            color: var(--text-light);
+            font-family: inherit;
+            font-size: 14px;
+        }
+
+        .form-select:focus,
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent-gold);
+        }
+
+        /* Course List */
+        .course-filter {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .course-filter input {
+            flex: 1;
+        }
+
+        .course-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid var(--border-dark);
+            border-radius: 10px;
+        }
+
+        .course-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--border-dark);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .course-item:hover {
+            background: rgba(251, 191, 36, 0.1);
+        }
+
+        .course-item.selected {
+            background: rgba(59, 130, 246, 0.2);
+            border-right: 3px solid var(--accent-blue);
+        }
+
+        .course-code {
+            font-weight: 600;
+            color: var(--accent-blue);
+        }
+
+        .course-name {
+            color: var(--text-light);
+            font-size: 12px;
+        }
+
+        .course-count {
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--accent-gold);
+            background: rgba(251, 191, 36, 0.15);
+            padding: 4px 12px;
+            border-radius: 8px;
+        }
+
+        /* Committee Options */
+        .committee-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .committee-option {
+            background: var(--bg-card);
+            border: 2px solid var(--border-dark);
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .committee-option:hover {
+            border-color: var(--accent-gold);
+        }
+
+        .committee-option.active {
+            border-color: var(--accent-blue);
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .committee-option h4 {
+            color: var(--accent-gold);
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .committee-option .input-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .committee-option input {
+            max-width: 100px;
+        }
+
+        .committee-option .result {
+            margin-top: 10px;
+            font-size: 13px;
+            color: var(--accent-green);
+            font-weight: 600;
+        }
+
+        /* Room Selection - Grid */
+        .room-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 8px;
+            max-height: 250px;
+            overflow-y: auto;
+            padding: 10px;
+            background: var(--bg-header);
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+
+        .room-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 10px;
+            background: var(--bg-card);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 12px;
+            border: 1px solid transparent;
+        }
+
+        .room-checkbox:hover {
+            border-color: var(--accent-gold);
+        }
+
+        .room-checkbox.selected {
+            background: rgba(16, 185, 129, 0.2);
+            border-color: var(--accent-green);
+        }
+
+        .room-checkbox.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .room-checkbox input {
+            accent-color: var(--accent-green);
+        }
+
+        .room-status {
+            background: var(--bg-card);
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .room-status .count {
+            font-weight: 700;
+            color: var(--accent-gold);
+        }
+
+        .room-search {
+            margin-bottom: 10px;
+        }
+
+        /* Room Chips */
+        .room-input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .room-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .room-chip {
+            background: var(--bg-header);
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .room-chip .remove {
+            cursor: pointer;
+            color: var(--accent-red);
+        }
+
+        /* Distribution Preview */
+        .distribution-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .distribution-table th,
+        .distribution-table td {
+            padding: 10px;
+            border: 1px solid var(--border-dark);
+            text-align: center;
+        }
+
+        .distribution-table th {
+            background: var(--bg-header);
+            color: var(--accent-gold);
+            font-size: 12px;
+        }
+
+        .distribution-table td {
+            font-size: 13px;
+        }
+
+        /* Sort Options */
+        .sort-option {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 15px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-dark);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .sort-option:hover {
+            border-color: var(--accent-gold);
+        }
+
+        .sort-option input:checked+span {
+            color: var(--accent-gold);
+            font-weight: 600;
+        }
+
+        /* Status Filter */
+        .status-filter-container {
+            display: flex;
+            gap: 10px;
+            align-items: stretch;
+        }
+
+        .status-list-box {
+            flex: 1;
+            background: var(--bg-card);
+            border: 1px solid var(--border-dark);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .status-list-title {
+            padding: 10px;
+            font-weight: 600;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .status-list-title.included {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--accent-green);
+        }
+
+        .status-list-title.excluded {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--accent-red);
+        }
+
+        .status-list {
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        .status-item {
+            padding: 6px 10px;
+            margin: 4px 0;
+            background: var(--bg-header);
+            border-radius: 6px;
+            font-size: 11px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s;
+        }
+
+        .status-item:hover {
+            background: rgba(251, 191, 36, 0.15);
+        }
+
+        .status-item.selected {
+            background: rgba(59, 130, 246, 0.3);
+            border: 1px solid var(--accent-blue);
+        }
+
+        .status-item .count {
+            background: var(--accent-gold);
+            color: #000;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .status-transfer-buttons {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .transfer-btn {
+            width: 36px;
+            height: 36px;
+            border: 1px solid var(--border-dark);
+            background: var(--bg-card);
+            color: var(--text-light);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+
+        .transfer-btn:hover {
+            background: var(--accent-gold);
+            color: #000;
+        }
+
+        /* Report Preview */
+        .report-page {
+            background: #fff;
+            margin-bottom: 20px;
+        }
+
+        .report-section {
+            margin-bottom: 10px;
+            background: #fff;
+            color: #000;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .report-header {
+            text-align: center;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #333;
+        }
+
+        .header-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .header-top-row .header-right {
+            text-align: right;
+            flex: 1;
+        }
+
+        .header-top-row .header-center {
+            text-align: center;
+            flex: 1;
+            font-weight: 700;
+        }
+
+        .header-top-row .header-left {
+            text-align: left;
+            flex: 1;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .report-header h2 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            font-weight: 800;
+        }
+
+        .report-header .info {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            font-size: 14px;
+            flex-wrap: wrap;
+        }
+
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .report-table th,
+        .report-table td {
+            border: 1px solid #333;
+            padding: 8px;
+            text-align: center;
+        }
+
+        .report-table th {
+            background: #f0f0f0;
+        }
+
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 8mm 10mm;
+            }
+
+            * {
+                background: #fff !important;
+                color: #000 !important;
+            }
+
+            html,
+            body {
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #fff !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .wizard-container {
+                background: #fff !important;
+                min-height: auto !important;
+            }
+
+            .wizard-header,
+            .steps-bar,
+            .wizard-nav,
+            .no-print,
+            .toast-container,
+            .alert {
+                display: none !important;
+            }
+
+            .wizard-content {
+                padding: 0 !important;
+                background: #fff !important;
+            }
+
+            #step5 {
+                background: #fff !important;
+            }
+
+            .report-page {
+                page-break-after: always;
+                background: #fff !important;
+                padding: 0 !important;
+            }
+
+            .report-page:last-child {
+                page-break-after: auto;
+            }
+
+            .report-section {
+                background: #fff !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                border: none !important;
+            }
+
+            .report-header {
+                margin-bottom: 4px !important;
+                padding-bottom: 4px !important;
+                border-bottom: 2px solid #000 !important;
+            }
+
+            .header-top-row {
+                display: flex !important;
+                justify-content: space-between !important;
+                margin-bottom: 4px !important;
+            }
+
+            .header-top-row .header-right {
+                flex: 1 !important;
+                text-align: right !important;
+                font-size: 9pt !important;
+            }
+
+            .header-top-row .header-center {
+                flex: 1 !important;
+                text-align: center !important;
+                font-size: 12pt !important;
+                font-weight: 700 !important;
+            }
+
+            .header-top-row .header-left {
+                flex: 1 !important;
+                text-align: left !important;
+                font-size: 9pt !important;
+            }
+
+            .report-header h2 {
+                font-size: 16pt !important;
+                margin-bottom: 3px !important;
+                font-weight: 800 !important;
+            }
+
+            .report-header .info {
+                font-size: 10pt !important;
+                gap: 15px !important;
+            }
+
+            .report-table {
+                font-size: 10pt !important;
+                background: #fff !important;
+            }
+
+            .report-table th,
+            .report-table td {
+                padding: var(--row-padding, 6px 5px) !important;
+                border: 1px solid #000 !important;
+                background: #fff !important;
+            }
+
+            .report-table th {
+                background: #e0e0e0 !important;
+                font-size: 10pt !important;
+                font-weight: 700 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .report-table td {
+                font-size: 10pt !important;
+            }
+
+            .report-table td:nth-child(3),
+            .report-table td:nth-child(5) {
+                white-space: nowrap !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                max-width: 140px !important;
+            }
+
+            /* تكرار رأس الجدول في كل صفحة */
+            .report-table thead {
+                display: table-header-group !important;
+            }
+
+            .report-table tbody {
+                display: table-row-group !important;
+            }
+
+            .report-table tr {
+                page-break-inside: avoid !important;
+            }
+        }
+
+        /* Print Styles - Force each report on new page */
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+
+            #reportsContainer {
+                display: block !important;
+            }
+
+            body {
+                background: white !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .report-page {
+                page-break-before: always;
+                page-break-after: always;
+                break-before: page;
+                break-after: page;
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+
+            .report-page:first-child {
+                page-break-before: avoid;
+                break-before: avoid;
+            }
+
+            .report-table {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+
+            .report-table tr {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wizard-container">
+        <!-- Header -->
+        <div class="wizard-header">
+            <div
+                style="display:flex; justify-content:space-between; align-items:center; max-width:900px; margin:0 auto;">
+                <div>
+                    <h1 class="wizard-title" style="margin:0; display:flex; align-items:center; gap:10px;"><i
+                            data-lucide="clipboard-list" style="width:28px; height:28px;"></i> توزيع المتدربين على لجان
+                        الاختبارات</h1>
+                    <p class="wizard-subtitle" style="margin:0;">م. محمد يوسف الشبيلي</p>
+                </div>
+                <div class="header-actions" style="display:flex; gap:10px;">
+                    <button class="btn-icon" id="themeToggle" onclick="toggleTheme()" title="تغيير المظهر"><i
+                            data-lucide="moon" style="width:20px; height:20px;"></i></button>
+                    <button class="btn-icon" onclick="newFile()" title="ملف جديد"><i data-lucide="folder-plus"
+                            style="width:20px; height:20px;"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Steps Bar -->
+        <div class="steps-bar">
+            <div class="step active clickable" data-step="1" onclick="goToStep(1)"><span
+                    class="step-number">1</span><span class="step-label">رفع الملفات</span></div>
+            <div class="step" data-step="2" onclick="goToStep(2)"><span class="step-number">2</span><span
+                    class="step-label">الأقسام والحالات</span></div>
+            <div class="step" data-step="3" onclick="goToStep(3)"><span class="step-number">3</span><span
+                    class="step-label">اختيار المقرر وعدد اللجان</span></div>
+            <div class="step" data-step="4" onclick="goToStep(4)"><span class="step-number">4</span><span
+                    class="step-label">توزيع القاعات/اللجان</span></div>
+            <div class="step" data-step="5" onclick="goToStep(5)"><span class="step-number">5</span><span
+                    class="step-label">التقارير</span></div>
+        </div>
+
+        <!-- Content -->
+        <div class="wizard-content">
+            <!-- Step 1: Upload -->
+            <div class="step-content active" id="step1">
+
+                <div class="upload-cards">
+                    <div class="upload-card">
+                        <h3><span class="badge">إجباري</span> تقرير SF01</h3>
+                        <p style="font-size:12px; color:var(--text-muted);">تقرير بيانات المتدربين والمقررات</p>
+                        <div class="upload-box" id="sf01Box" onclick="document.getElementById('sf01Input').click()">
+                            <span class="upload-icon"><i data-lucide="file-text"
+                                    style="width:40px; height:40px;"></i></span>
+                            <div style="font-weight:600;">اسحب الملف هنا أو انقر للاختيار</div>
+                            <div style="font-size:11px; color:var(--text-muted);">CSV أو Excel</div>
+                        </div>
+                        <input type="file" class="file-input" id="sf01Input" accept=".csv,.xlsx,.xls">
+                        <div class="file-info" id="sf01Info"></div>
+                    </div>
+                    <div class="upload-card">
+                        <h3><span class="badge optional">اختياري</span> تقرير SS01</h3>
+                        <p style="font-size:12px; color:var(--text-muted);">تقرير جدول الوحدة طولي (لتحديد القاعات)</p>
+                        <div class="upload-box" id="ss01Box" onclick="document.getElementById('ss01Input').click()">
+                            <span class="upload-icon"><i data-lucide="building"
+                                    style="width:40px; height:40px;"></i></span>
+                            <div style="font-weight:600;">اسحب الملف هنا أو انقر للاختيار</div>
+                            <div style="font-size:11px; color:var(--text-muted);">CSV أو Excel</div>
+                        </div>
+                        <input type="file" class="file-input" id="ss01Input" accept=".csv,.xlsx,.xls">
+                        <div class="file-info" id="ss01Info"></div>
+                    </div>
+                </div>
+                <div class="alert success" style="margin-top:20px; text-align:center;">
+                    <i data-lucide="shield-check" style="width:18px; height:18px; vertical-align:middle;"></i> تنويه:
+                    البيانات تُعالج محلياً على جهازك ولا تُرسل لأي خادم
+                </div>
+            </div>
+
+            <!-- Step 2: Departments and Status Filter -->
+            <div class="step-content" id="step2">
+
+                <div id="validationAlert"></div>
+
+                <!-- Departments Section -->
+                <div style="margin-bottom:25px;">
+                    <h3 style="color:var(--text-light); margin-bottom:15px; display:flex; align-items:center; gap:8px;">
+                        <i data-lucide="landmark" style="width:20px; height:20px;"></i> الأقسام الموجودة في التقرير
+                    </h3>
+                    <div id="departmentsList" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+                </div>
+
+                <!-- Status Filter Section -->
+                <div id="statusFilterSection" style="margin-top:25px;">
+                    <h3 style="color:var(--text-light); margin-bottom:15px; display:flex; align-items:center; gap:8px;">
+                        <i data-lucide="filter" style="width:20px; height:20px;"></i> تصفية حالات التسجيل
+                    </h3>
+
+                    <!-- Unknown Statuses Warning -->
+                    <div id="unknownStatusesSection" style="display:none; margin-bottom:20px;">
+                        <div class="alert warning" style="margin-bottom:10px;">
+                            <i data-lucide="alert-triangle" style="width:16px; height:16px; vertical-align:middle;"></i>
+                            يوجد حالات تسجيل غير معروفة. يجب تصنيفها قبل المتابعة:
+                        </div>
+                        <div class="status-list-box"
+                            style="border-color: #f59e0b; background: rgba(245, 158, 11, 0.1);">
+                            <div class="status-list-title" style="color: #f59e0b;"><i data-lucide="circle-help"
+                                    style="width:16px; height:16px; vertical-align:middle;"></i> حالات تحتاج تصنيف</div>
+                            <div class="status-list" id="unknownStatusesList"></div>
+                        </div>
+                        <div style="margin-top:10px; display:flex; gap:10px; justify-content:center;">
+                            <button class="nav-btn next" onclick="classifyUnknownAsIncluded()"
+                                style="padding:8px 15px; font-size:12px; display:inline-flex; align-items:center; gap:4px;"><i
+                                    data-lucide="plus" style="width:14px; height:14px;"></i> أضف للمسموحة</button>
+                            <button class="nav-btn prev" onclick="classifyUnknownAsExcluded()"
+                                style="padding:8px 15px; font-size:12px; display:inline-flex; align-items:center; gap:4px;"><i
+                                    data-lucide="minus" style="width:14px; height:14px;"></i> أضف للمستبعدة</button>
+                        </div>
+                    </div>
+
+                    <div class="status-filter-container">
+                        <div class="status-list-box">
+                            <div class="status-list-title included"><i data-lucide="check"
+                                    style="width:14px; height:14px; vertical-align:middle;"></i> حالات التسجيل التي
+                                ستظهر في الكشوف</div>
+                            <div class="status-list" id="includedStatusesStep2"></div>
+                        </div>
+                        <div class="status-transfer-buttons">
+                            <button class="transfer-btn" onclick="transferStatus('exclude')" title="استبعاد">←</button>
+                            <button class="transfer-btn" onclick="transferStatus('include')" title="تضمين">→</button>
+                        </div>
+                        <div class="status-list-box">
+                            <div class="status-list-title excluded"><i data-lucide="x"
+                                    style="width:14px; height:14px; vertical-align:middle;"></i> حالات التسجيل المستبعدة
+                                (لن تظهر في الكشوف)</div>
+                            <div class="status-list" id="excludedStatusesStep2"></div>
+                        </div>
+                    </div>
+                    <div id="statusSummaryStep2" style="margin-top:10px; font-size:12px; color:var(--text-muted);">
+                    </div>
+
+                    <!-- Status Summary - Enhanced (moved here after filter) -->
+                    <div id="statusSummaryStyled"
+                        style="background:var(--bg-card); border-radius:12px; padding:15px; margin-top:20px; border:1px solid var(--border-dark);">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Course Selection -->
+            <div class="step-content" id="step3">
+
+                <div class="form-group">
+                    <h3 style="color:var(--text-light); margin-bottom:15px; display:flex; align-items:center; gap:8px;">
+                        <i data-lucide="landmark" style="width:20px; height:20px;"></i> اختر القسم:
+                    </h3>
+                    <select class="form-select" id="departmentSelect">
+                        <option value="">-- اختر القسم --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <h3 style="color:var(--text-light); margin-bottom:15px; display:flex; align-items:center; gap:8px;">
+                        <i data-lucide="search" style="width:20px; height:20px;"></i> تصفية المقررات:
+                    </h3>
+                    <input type="text" class="form-input" id="courseFilter" placeholder="ابحث برمز أو اسم المقرر...">
+                </div>
+                <div class="course-list" id="courseList"></div>
+
+                <!-- Committee Options -->
+                <div id="committeeOptionsSection" style="display:none;">
+                    <h3
+                        style="margin-top:25px; color:var(--text-light); margin-bottom:15px; display:flex; align-items:center; gap:8px;">
+                        <i data-lucide="settings" style="width:20px; height:20px;"></i> تحديد عدد اللجان
+                    </h3>
+                    <div class="committee-options">
+                        <div class="committee-option active" id="optionByRooms" onclick="switchCommitteeMode('rooms')">
+                            <h4 style="display:flex; align-items:center; gap:6px;"><i data-lucide="door-open"
+                                    style="width:18px; height:18px;"></i> تحديد عدد القاعات</h4>
+                            <div class="input-row">
+                                <input type="number" class="form-input" id="committeeCount" min="1" max="50" value="1"
+                                    oninput="updateCommitteeCalc()">
+                                <span style="color:var(--text-muted);">قاعة</span>
+                            </div>
+                            <div class="result" id="traineesPerRoomResult"></div>
+                        </div>
+                        <div class="committee-option" id="optionByTrainees" onclick="switchCommitteeMode('trainees')">
+                            <h4 style="display:flex; align-items:center; gap:6px;"><i data-lucide="users"
+                                    style="width:18px; height:18px;"></i> تحديد عدد المتدربين باللجنة</h4>
+                            <div class="input-row">
+                                <input type="number" class="form-input" id="traineesPerRoom" min="1" max="100"
+                                    value="30" oninput="updateCommitteeCalc()">
+                                <span style="color:var(--text-muted);">متدرب</span>
+                            </div>
+                            <div class="result" id="roomsNeededResult"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 4: Room Distribution -->
+            <div class="step-content" id="step4">
+                <h2
+                    style="text-align:center; color: var(--text-light); margin-bottom: 20px; display:flex; align-items:center; justify-content:center; gap:10px;">
+                    <i data-lucide="building-2" style="width:24px; height:24px;"></i> توزيع القاعات/اللجان
+                </h2>
+                <div id="roomSelectionMode"></div>
+                <div id="distributionPreview"></div>
+            </div>
+
+            <!-- Step 5: Reports -->
+            <div class="step-content" id="step5">
+                <!-- Sort Options -->
+                <div class="no-print"
+                    style="background:var(--bg-card); border-radius:12px; padding:15px; margin-bottom:20px; border:1px solid var(--border-dark);">
+                    <h3 style="color:var(--text-light); margin-bottom:15px; display:flex; align-items:center; gap:8px;">
+                        <i data-lucide="arrow-up-down" style="width:20px; height:20px;"></i> ترتيب المتدربين
+                    </h3>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center;">
+                        <label class="sort-option">
+                            <input type="radio" name="sortOrder" value="traineeId" checked onchange="generateReports()">
+                            <span>حسب الرقم التدريبي</span>
+                        </label>
+                        <label class="sort-option">
+                            <input type="radio" name="sortOrder" value="instructor" onchange="generateReports()">
+                            <span>حسب اسم المدرب</span>
+                        </label>
+                        <label class="sort-option">
+                            <input type="radio" name="sortOrder" value="traineeName" onchange="generateReports()">
+                            <span>حسب حرف الاسم الأول</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Row Height Control -->
+                <div class="no-print"
+                    style="background:var(--bg-card); border-radius:12px; padding:15px; margin-bottom:20px; border:1px solid var(--border-dark);">
+                    <h3 style="color:var(--text-light); margin-bottom:15px; display:flex; align-items:center; gap:8px;">
+                        <i data-lucide="rows-3" style="width:20px; height:20px;"></i> عدد الصفوف في الصفحة
+                    </h3>
+                    <div style="display:flex; align-items:center; justify-content:center; gap:15px; position:relative;">
+                        <!-- Right label -->
+                        <span
+                            style="color:var(--text-light); font-size:16px; font-weight:600; min-width:50px; text-align:center;">أكثر</span>
+
+                        <!-- Circle slider container -->
+                        <div style="display:flex; align-items:center; position:relative; flex:1; max-width:300px;">
+                            <!-- Line connecting circles -->
+                            <div
+                                style="position:absolute; top:50%; left:0; right:0; height:2px; background:var(--border-dark); transform:translateY(-50%); z-index:0;">
+                            </div>
+                            <!-- Circles -->
+                            <div
+                                style="display:flex; align-items:center; justify-content:space-between; width:100%; z-index:1;">
+                                <div class="row-height-circle" data-level="1" onclick="setRowHeight(1)"
+                                    style="width:20px; height:20px; border-radius:50%; background:var(--bg-header); border:3px solid var(--border-dark); cursor:pointer; transition:all 0.2s;"
+                                    title="صغير جداً"></div>
+                                <div class="row-height-circle" data-level="2" onclick="setRowHeight(2)"
+                                    style="width:20px; height:20px; border-radius:50%; background:var(--bg-header); border:3px solid var(--border-dark); cursor:pointer; transition:all 0.2s;"
+                                    title="صغير"></div>
+                                <div class="row-height-circle active" data-level="3" onclick="setRowHeight(3)"
+                                    style="width:20px; height:20px; border-radius:50%; background:var(--accent-green); border:3px solid var(--accent-green); cursor:pointer; transition:all 0.2s;"
+                                    title="متوسط"></div>
+                                <div class="row-height-circle" data-level="4" onclick="setRowHeight(4)"
+                                    style="width:20px; height:20px; border-radius:50%; background:var(--bg-header); border:3px solid var(--border-dark); cursor:pointer; transition:all 0.2s;"
+                                    title="كبير"></div>
+                                <div class="row-height-circle" data-level="5" onclick="setRowHeight(5)"
+                                    style="width:20px; height:20px; border-radius:50%; background:var(--bg-header); border:3px solid var(--border-dark); cursor:pointer; transition:all 0.2s;"
+                                    title="كبير جداً"></div>
+                            </div>
+                        </div>
+
+                        <!-- Left label -->
+                        <span
+                            style="color:var(--text-light); font-size:16px; font-weight:600; min-width:50px; text-align:center;">أقل</span>
+                    </div>
+                </div>
+
+                <!-- Trainees Per Page Control -->
+                <div class="no-print"
+                    style="background:var(--bg-card); border-radius:12px; padding:15px; margin-bottom:20px; border:1px solid var(--border-dark);">
+                    <h3 style="color:var(--text-light); margin-bottom:15px; display:flex; align-items:center; gap:8px;">
+                        <i data-lucide="users" style="width:20px; height:20px;"></i> عدد المتدربين في الصفحة
+                    </h3>
+                    <div style="display:flex; align-items:center; justify-content:center; gap:15px;">
+                        <input type="number" id="traineesPerPage" value="20" min="5" max="50"
+                            style="width:80px; padding:10px; border-radius:8px; border:2px solid var(--border-dark); background:var(--bg-dark); color:var(--text-light); text-align:center; font-size:18px; font-weight:600;"
+                            onchange="updateTraineesPerPage()">
+                        <span style="color:var(--text-muted);">متدرب / صفحة</span>
+                    </div>
+                </div>
+                <div class="no-print" style="text-align:center; margin-bottom:20px;">
+                    <button class="nav-btn next" onclick="printReports()"
+                        style="display:inline-flex; align-items:center; gap:6px;"><i data-lucide="printer"
+                            style="width:18px; height:18px;"></i> طباعة / تصدير PDF</button>
+                    <button class="nav-btn prev" onclick="exportToExcel()"
+                        style="margin-right:10px; display:inline-flex; align-items:center; gap:6px;"><i
+                            data-lucide="file-spreadsheet" style="width:18px; height:18px;"></i> تصدير Excel</button>
+                </div>
+                <div id="reportsContainer" style="display:none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="wizard-nav">
+        <button class="nav-btn prev" id="prevBtn" onclick="previousStep()" disabled>→ السابق</button>
+        <button class="nav-btn next" id="nextBtn" onclick="nextStep()">التالي ←</button>
+    </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="shared/js/utils.js"></script>
+    <script src="shared/js/export.js"></script>
+    <script>
+        // Global State
+        let currentStep = 1;
+        let maxReachedStep = 1;
+        let sf01Data = null, ss01Data = null;
+        let sf01FileDate = null;
+        let selectedDepartment = null, selectedCourse = null;
+        let selectedCourseTraineeCount = 0;
+        let committeeCount = 1;
+        let committeeMode = 'rooms'; // 'rooms' or 'trainees'
+        let roomNames = [];
+        let allRoomsInBuilding = [];
+
+        // Status Filter - Predefined lists
+        const defaultIncludedStatuses = [
+            'مقرر مسجل عن طريق مدير النظام',
+            'مقرر مسجل عن طريق الويب',
+            'مقرر مسجل عن طريق االويب',
+            'مقرر معاد قيده لتعديل الحرمان'
+        ];
+        const defaultExcludedStatuses = [
+            'انسحاب فصلي',
+            'مطوي قيده',
+            'حرمان بسبب غياب',
+            'مطوي قيده لإنقطاع أسبوعين'
+        ];
+        let includedStatuses = [];
+        let excludedStatuses = [];
+        let unknownStatuses = []; // New: statuses not in predefined lists
+        let allStatuses = {};
+        let selectedStatusItem = null;
+        let sortOrder = 'traineeId';
+        let traineesPerPage = 20; // Default trainees per page for PDF
+        // Configure app database (uses shared utils.js)
+        configureDB('traineeDistributionDB');
+
+        // New File - calls shared clearAllData()
+        function newFile() {
+            if (confirm('هل أنت متأكد من رغبتك برفع ملف جديد وتجاهل هذه البيانات؟')) {
+                clearAllData().then(() => location.reload());
+            }
+        }
+
+        // Auto-restore on load
+        async function restoreData() {
+            try {
+                const sf01Result = await loadFromIndexedDB('sf01Data');
+                const ss01Result = await loadFromIndexedDB('ss01Data');
+                const dateResult = await loadFromIndexedDB('sf01FileDate');
+
+                if (sf01Result?.rawData && sf01Result.rawData.length > 0) {
+                    sf01Data = sf01Result.rawData;
+                    sf01FileDate = dateResult?.rawData ? new Date(dateResult.rawData) : new Date();
+                    maxReachedStep = 2;
+                    currentStep = 2;
+
+                    // Calculate age like in normal upload
+                    const now = new Date();
+                    const diff = now - sf01FileDate;
+                    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+                    // Age-based color class
+                    let ageClass = 'age-normal';
+                    if (days > 5) ageClass = 'age-critical';
+                    else if (days > 2) ageClass = 'age-warning';
+
+                    document.getElementById('sf01Box').classList.add('loaded');
+                    document.getElementById('sf01Info').innerHTML = `
+                        <div><strong>[OK] تم استعادة البيانات</strong></div>
+                        <div>تاريخ الملف: ${sf01FileDate.toLocaleDateString('ar-SA')}</div>
+                        <div class="${ageClass}">عمر التقرير: ${days} يوم و ${hours} ساعة و ${minutes} دقيقة</div>
+                        <div>عدد السجلات: ${sf01Data.length}</div>
+                    `;
+                    document.getElementById('sf01Info').classList.add('show');
+
+                    populateStep2();
+                    updateStepUI();
+                    showToast('تم استعادة البيانات المحفوظة', 'success');
+                }
+
+                if (ss01Result?.rawData && ss01Result.rawData.length > 0) {
+                    ss01Data = ss01Result.rawData;
+                    document.getElementById('ss01Box').classList.add('loaded');
+                    document.getElementById('ss01Info').innerHTML = '<div><strong>[OK] تم استعادة بيانات القاعات</strong></div>';
+                    document.getElementById('ss01Info').classList.add('show');
+                }
+            } catch (e) {
+                console.log('No saved data to restore:', e);
+            }
+        }
+
+        // Initialize using shared utilities
+        loadTheme();
+        initDB().then(() => restoreData());
+
+        // File Upload
+        document.getElementById('sf01Input').addEventListener('change', (e) => handleFileUpload(e, 'sf01'));
+        document.getElementById('ss01Input').addEventListener('change', (e) => handleFileUpload(e, 'ss01'));
+
+        function handleFileUpload(e, type) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const box = document.getElementById(type + 'Box');
+            const info = document.getElementById(type + 'Info');
+            const fileDate = new Date(file.lastModified);
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                let data;
+                if (file.name.endsWith('.csv')) {
+                    data = parseCSV(event.target.result);
+                } else {
+                    showToast('يرجى استخدام ملفات CSV حالياً', 'error');
+                    return;
+                }
+
+                if (type === 'sf01') {
+                    sf01Data = data;
+                    sf01FileDate = fileDate;
+                    maxReachedStep = Math.max(maxReachedStep, 2);
+                    // Save to IndexedDB using shared utils
+                    saveToIndexedDB(data, 'sf01Data');
+                    saveToIndexedDB(fileDate.toISOString(), 'sf01FileDate');
+                } else {
+                    ss01Data = data;
+                    saveToIndexedDB(data, 'ss01Data');
+                }
+
+                box.classList.add('loaded');
+
+                const now = new Date();
+                const diff = now - fileDate;
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+                // Age-based color class
+                let ageClass = 'age-normal';
+                if (days > 5) ageClass = 'age-critical';
+                else if (days > 2) ageClass = 'age-warning';
+
+                info.innerHTML = `
+                    <div><strong>[OK] ${file.name}</strong></div>
+                    <div>تاريخ الملف: ${fileDate.toLocaleDateString('ar-SA')}</div>
+                    <div class="${ageClass}">عمر التقرير: ${days} يوم و ${hours} ساعة و ${minutes} دقيقة</div>
+                    <div>عدد السجلات: ${data.length}</div>
+                `;
+                info.classList.add('show');
+                showToast('تم تحميل: ' + file.name, 'success');
+                updateStepClickability();
+            };
+            reader.readAsText(file);
+        }
+
+        // Step Clickability
+        function updateStepClickability() {
+            document.querySelectorAll('.step').forEach((el, i) => {
+                const stepNum = i + 1;
+                if (stepNum <= maxReachedStep || (stepNum === currentStep + 1 && canProceed())) {
+                    el.classList.add('clickable');
+                } else {
+                    el.classList.remove('clickable');
+                }
+            });
+        }
+
+        function canProceed() {
+            if (currentStep === 1) return sf01Data !== null;
+            if (currentStep === 2) {
+                if (unknownStatuses.length > 0) {
+                    showToast('يجب تصنيف جميع الحالات غير المعروفة أولاً', 'warning');
+                    return false;
+                }
+                return sf01Data !== null;
+            }
+            if (currentStep === 3) return selectedCourse !== null;
+            if (currentStep === 4) return true;
+            return true;
+        }
+
+        function goToStep(step) {
+            const stepEl = document.querySelector(`.step[data-step="${step}"]`);
+            if (!stepEl.classList.contains('clickable') && step !== currentStep) {
+                showToast('أكمل الخطوات السابقة أولاً', 'error');
+                return;
+            }
+
+            if (step > currentStep) {
+                while (currentStep < step) {
+                    if (!canProceed()) break;
+                    nextStep();
+                }
+            } else if (step < currentStep) {
+                currentStep = step;
+                updateStepUI();
+            }
+        }
+
+        // Navigation
+        function updateStepUI() {
+            document.querySelectorAll('.step').forEach((el, i) => {
+                el.classList.remove('active', 'completed');
+                if (i + 1 === currentStep) el.classList.add('active');
+                else if (i + 1 < currentStep) el.classList.add('completed');
+            });
+
+            document.querySelectorAll('.step-content').forEach((el, i) => {
+                el.classList.toggle('active', i + 1 === currentStep);
+            });
+
+            document.getElementById('prevBtn').disabled = currentStep === 1;
+            document.getElementById('nextBtn').textContent = currentStep === 5 ? 'إنهاء' : 'التالي ←';
+            updateStepClickability();
+
+            // Scroll to top
+            window.scrollTo(0, 0);
+            document.querySelector('.wizard-content')?.scrollTo(0, 0);
+        }
+
+        function nextStep() {
+            if (currentStep === 1 && !sf01Data) {
+                showToast('يرجى رفع ملف SF01 أولاً', 'error');
+                return;
+            }
+            if (currentStep === 2) populateStep3();
+            if (currentStep === 3) {
+                if (!selectedCourse) { showToast('يرجى اختيار مقرر', 'error'); return; }
+                finalizeCommitteeCount();
+                populateStep4();
+            }
+            if (currentStep === 4) generateReports();
+
+            if (currentStep < 5) {
+                currentStep++;
+                maxReachedStep = Math.max(maxReachedStep, currentStep);
+                if (currentStep === 2) populateStep2();
+                updateStepUI();
+            } else if (currentStep === 5) {
+                // Show finish dialog
+                showFinishDialog();
+            }
+        }
+
+        function showFinishDialog() {
+            // Create modal overlay
+            const overlay = document.createElement('div');
+            overlay.id = 'finishDialog';
+            overlay.style.cssText = 'position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center; z-index:9999;';
+
+            // Close when clicking outside the dialog
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    overlay.remove();
+                }
+            });
+
+            overlay.innerHTML = `
+                <div style="background:#1a1f2e; border-radius:16px; padding:40px; max-width:500px; width:90%; text-align:center; border:1px solid #2d3548; position:relative;">
+                    <!-- Close button -->
+                    <button onclick="document.getElementById('finishDialog').remove()" 
+                        style="position:absolute; top:15px; left:15px; background:transparent; border:none; color:#9ca3af; font-size:24px; cursor:pointer; width:30px; height:30px; display:flex; align-items:center; justify-content:center;"
+                        title="إغلاق">×</button>
+                    
+                    <p style="color:#f3f4f6; font-size:20px; font-weight:600; margin-bottom:30px;">ماذا تريد أن تفعل الآن؟</p>
+                    <div style="display:flex; flex-direction:column; gap:15px;">
+                        <button onclick="chooseAnotherCourse()" style="padding:15px 25px; border-radius:10px; border:2px solid #3b82f6; background:#3b82f6; color:white; font-size:16px; font-weight:600; cursor:pointer;">
+                            اختيار مقرر آخر
+                        </button>
+                        <button onclick="closeApp()" style="padding:15px 25px; border-radius:10px; border:2px solid #3b82f6; background:transparent; color:#3b82f6; font-size:16px; font-weight:600; cursor:pointer;">
+                            إنهاء التطبيق
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(overlay);
+        }
+
+        function chooseAnotherCourse() {
+            // Remove dialog
+            document.getElementById('finishDialog')?.remove();
+
+            // Reset selection and go to step 3
+            selectedCourse = null;
+            currentStep = 3;
+            populateStep3();
+            updateStepUI();
+            showToast('اختر مقرراً آخر', 'info');
+        }
+
+        function closeApp() {
+            // Try to close the window
+            window.close();
+            // If window.close() doesn't work (some browsers block it)
+            setTimeout(() => {
+                document.getElementById('finishDialog')?.remove();
+                showToast('لا يمكن إغلاق النافذة تلقائياً. يرجى إغلاقها يدوياً.', 'warning');
+            }, 500);
+        }
+
+        function previousStep() {
+            if (currentStep > 1) {
+                currentStep--;
+                updateStepUI();
+            }
+        }
+
+        // Step 2: Departments and Status Filter
+        function populateStep2() {
+            const departments = [...new Set(sf01Data.map(r => r['القسم']).filter(Boolean))];
+            const hasGeneralStudies = departments.some(d => d.includes('الدراسات العامة'));
+
+            let alertHtml = '';
+            if (!hasGeneralStudies) {
+                alertHtml = `<div class="alert error">لم يتم تنزيل كامل التقرير SF01. قم بتنزيل التقرير من جديد مع التأكد من اختيار جميع الأقسام والتخصصات.</div>`;
+            }
+            document.getElementById('validationAlert').innerHTML = alertHtml;
+
+            document.getElementById('departmentsList').innerHTML = departments.map(d =>
+                `<span style="background:var(--bg-header); padding:5px 12px; border-radius:15px; font-size:12px;">${d}</span>`
+            ).join('');
+
+            // Populate status filter for all courses
+            populateStatusFilterAll();
+        }
+
+        function populateStatusFilterAll() {
+            if (!sf01Data) return;
+
+            allStatuses = {};
+
+            sf01Data.forEach(t => {
+                const status = t['حالة تسجيل'] || 'غير محدد';
+                allStatuses[status] = (allStatuses[status] || 0) + 1;
+            });
+
+            // Classify statuses into 3 categories
+            const statusNames = Object.keys(allStatuses);
+            includedStatuses = statusNames.filter(s => defaultIncludedStatuses.includes(s));
+            excludedStatuses = statusNames.filter(s => defaultExcludedStatuses.includes(s));
+            unknownStatuses = statusNames.filter(s =>
+                !defaultIncludedStatuses.includes(s) && !defaultExcludedStatuses.includes(s)
+            );
+
+            renderStatusLists();
+            updateStatusSummary();
+        }
+
+        // Step 3: Course Selection
+        function populateStep3() {
+            const departments = [...new Set(sf01Data.map(r => r['القسم']).filter(Boolean))];
+            const select = document.getElementById('departmentSelect');
+            select.innerHTML = '<option value="">-- اختر القسم --</option>' +
+                departments.map(d => `<option value="${d}">${d}</option>`).join('');
+
+            select.onchange = () => {
+                selectedDepartment = select.value;
+                selectedCourse = null;
+                document.getElementById('committeeOptionsSection').style.display = 'none';
+                renderCourses();
+            };
+
+            document.getElementById('courseFilter').oninput = renderCourses;
+        }
+
+        function renderCourses() {
+            const filter = document.getElementById('courseFilter').value.toLowerCase();
+            let filtered = sf01Data.filter(r => r['القسم'] === selectedDepartment);
+
+            const courses = {};
+            filtered.forEach(r => {
+                const code = r['المقرر'] || '';
+                const name = r['اسم المقرر'] || '';
+                const status = r['حالة تسجيل'] || 'غير محدد';
+
+                if (!courses[code]) courses[code] = { code, name, count: 0, totalCount: 0 };
+                courses[code].totalCount++;
+
+                // Only count if status is in included list
+                if (includedStatuses.includes(status)) {
+                    courses[code].count++;
+                }
+            });
+
+            let courseList = Object.values(courses);
+
+            // Filter by text search
+            if (filter) {
+                courseList = courseList.filter(c =>
+                    c.code.toLowerCase().includes(filter) ||
+                    c.name.toLowerCase().includes(filter)
+                );
+            }
+
+            document.getElementById('courseList').innerHTML = courseList.length ?
+                courseList.map(c => `
+                    <div class="course-item ${selectedCourse === c.code ? 'selected' : ''}" onclick="selectCourse('${c.code}', ${c.count})">
+                        <div><span class="course-code">${c.code}</span> - <span class="course-name">${c.name}</span></div>
+                        <span class="course-count">${c.count}${c.count !== c.totalCount ? ` <small style="opacity:0.6">(من ${c.totalCount})</small>` : ''}</span>
+                    </div>
+                `).join('') : '<div style="padding:20px; text-align:center; color:var(--text-muted);">لا توجد مقررات</div>';
+        }
+
+        function selectCourse(code, count) {
+            selectedCourse = code;
+            selectedCourseTraineeCount = count;
+            renderCourses();
+
+            // Show committee options
+            document.getElementById('committeeOptionsSection').style.display = 'block';
+            updateCommitteeCalc();
+
+            // Populate status filter
+            populateStatusFilter();
+        }
+
+        function switchCommitteeMode(mode) {
+            committeeMode = mode;
+            document.getElementById('optionByRooms').classList.toggle('active', mode === 'rooms');
+            document.getElementById('optionByTrainees').classList.toggle('active', mode === 'trainees');
+            updateCommitteeCalc();
+        }
+
+        function updateCommitteeCalc() {
+            const n = selectedCourseTraineeCount;
+
+            if (committeeMode === 'rooms') {
+                const rooms = parseInt(document.getElementById('committeeCount').value) || 1;
+                const perRoom = Math.ceil(n / rooms);
+                document.getElementById('traineesPerRoomResult').textContent = `≈ ${perRoom} متدرب لكل لجنة`;
+                document.getElementById('roomsNeededResult').textContent = '';
+            } else {
+                const perRoom = parseInt(document.getElementById('traineesPerRoom').value) || 30;
+                const rooms = Math.ceil(n / perRoom);
+                document.getElementById('roomsNeededResult').textContent = `= ${rooms} لجنة مطلوبة`;
+                document.getElementById('traineesPerRoomResult').textContent = '';
+            }
+        }
+
+        function finalizeCommitteeCount() {
+            if (committeeMode === 'rooms') {
+                committeeCount = parseInt(document.getElementById('committeeCount').value) || 1;
+            } else {
+                const perRoom = parseInt(document.getElementById('traineesPerRoom').value) || 30;
+                committeeCount = Math.ceil(selectedCourseTraineeCount / perRoom);
+            }
+        }
+
+        // Status Filter Functions
+        function populateStatusFilter() {
+            if (!selectedCourse || !sf01Data) return;
+
+            const courseTrainees = sf01Data.filter(r => r['المقرر'] === selectedCourse);
+            allStatuses = {};
+
+            courseTrainees.forEach(t => {
+                const status = t['حالة تسجيل'] || 'غير محدد';
+                allStatuses[status] = (allStatuses[status] || 0) + 1;
+            });
+
+            // Separate into included and excluded
+            const statusNames = Object.keys(allStatuses);
+            includedStatuses = statusNames.filter(s => defaultIncludedStatuses.includes(s));
+            excludedStatuses = statusNames.filter(s => !defaultIncludedStatuses.includes(s));
+
+            renderStatusLists();
+            updateStatusSummary();
+        }
+
+        function renderStatusLists() {
+            const includedContainer = document.getElementById('includedStatusesStep2');
+            const excludedContainer = document.getElementById('excludedStatusesStep2');
+
+            if (!includedContainer || !excludedContainer) return;
+
+            includedContainer.innerHTML = includedStatuses.map(s => `
+                <div class="status-item ${selectedStatusItem === s ? 'selected' : ''}" 
+                     onclick="selectStatus('${s}', 'included')">
+                    <span>${s}</span>
+                    <span class="count">${allStatuses[s] || 0}</span>
+                </div>
+            `).join('') || '<div style="color:var(--text-muted);font-size:11px;text-align:center;padding:10px;">لا توجد حالات</div>';
+
+            excludedContainer.innerHTML = excludedStatuses.map(s => `
+                <div class="status-item ${selectedStatusItem === s ? 'selected' : ''}" 
+                     onclick="selectStatus('${s}', 'excluded')">
+                    <span>${s}</span>
+                    <span class="count">${allStatuses[s] || 0}</span>
+                </div>
+            `).join('') || '<div style="color:var(--text-muted);font-size:11px;text-align:center;padding:10px;">لا توجد حالات</div>';
+
+            // Render unknown statuses
+            const unknownContainer = document.getElementById('unknownStatusesList');
+            const unknownSection = document.getElementById('unknownStatusesSection');
+
+            if (unknownContainer && unknownSection) {
+                if (unknownStatuses.length > 0) {
+                    unknownSection.style.display = 'block';
+                    unknownContainer.innerHTML = unknownStatuses.map(s => `
+                        <div class="status-item ${selectedStatusItem === s ? 'selected' : ''}" 
+                             onclick="selectStatus('${s}', 'unknown')" style="border-right-color: #f59e0b;">
+                            <span>${s}</span>
+                            <span class="count">${allStatuses[s] || 0}</span>
+                        </div>
+                    `).join('');
+                } else {
+                    unknownSection.style.display = 'none';
+                }
+            }
+        }
+
+        function selectStatus(status, list) {
+            selectedStatusItem = selectedStatusItem === status ? null : status;
+            renderStatusLists();
+        }
+
+        // Classify selected unknown status as included
+        function classifyUnknownAsIncluded() {
+            if (!selectedStatusItem || !unknownStatuses.includes(selectedStatusItem)) {
+                showToast('اختر حالة غير معروفة أولاً', 'error');
+                return;
+            }
+            unknownStatuses = unknownStatuses.filter(s => s !== selectedStatusItem);
+            includedStatuses.push(selectedStatusItem);
+            selectedStatusItem = null;
+            renderStatusLists();
+            updateStatusSummary();
+            showToast('تم إضافة الحالة للمسموحة', 'success');
+        }
+
+        // Classify selected unknown status as excluded
+        function classifyUnknownAsExcluded() {
+            if (!selectedStatusItem || !unknownStatuses.includes(selectedStatusItem)) {
+                showToast('اختر حالة غير معروفة أولاً', 'error');
+                return;
+            }
+            unknownStatuses = unknownStatuses.filter(s => s !== selectedStatusItem);
+            excludedStatuses.push(selectedStatusItem);
+            selectedStatusItem = null;
+            renderStatusLists();
+            updateStatusSummary();
+            showToast('تم إضافة الحالة للمستبعدة', 'success');
+        }
+
+        function transferStatus(direction) {
+            if (!selectedStatusItem) {
+                showToast('اختر حالة أولاً', 'error');
+                return;
+            }
+
+            if (direction === 'exclude') {
+                if (includedStatuses.includes(selectedStatusItem)) {
+                    includedStatuses = includedStatuses.filter(s => s !== selectedStatusItem);
+                    excludedStatuses.push(selectedStatusItem);
+                }
+            } else {
+                if (excludedStatuses.includes(selectedStatusItem)) {
+                    excludedStatuses = excludedStatuses.filter(s => s !== selectedStatusItem);
+                    includedStatuses.push(selectedStatusItem);
+                }
+            }
+
+            selectedStatusItem = null;
+            renderStatusLists();
+            updateStatusSummary();
+        }
+
+        function updateStatusSummary() {
+            const total = Object.values(allStatuses).reduce((a, b) => a + b, 0);
+            const included = includedStatuses.reduce((sum, s) => sum + (allStatuses[s] || 0), 0);
+            const excluded = excludedStatuses.reduce((sum, s) => sum + (allStatuses[s] || 0), 0);
+            const unknown = unknownStatuses.reduce((sum, s) => sum + (allStatuses[s] || 0), 0);
+
+            // Enhanced styled summary
+            const styledEl = document.getElementById('statusSummaryStyled');
+            if (styledEl) {
+                styledEl.innerHTML = `
+                    <div style="display:flex; justify-content:space-around; text-align:center; flex-wrap:wrap; gap:15px;">
+                        <div style="padding:10px 20px;">
+                            <div style="font-size:24px; font-weight:700; color:var(--text-light);">${total.toLocaleString()}</div>
+                            <div style="font-size:12px; color:var(--text-muted);">إجمالي المتدربين</div>
+                        </div>
+                        <div style="padding:10px 20px; background:rgba(16, 185, 129, 0.15); border-radius:10px;">
+                            <div style="font-size:24px; font-weight:700; color:#10b981;">${included.toLocaleString()}</div>
+                            <div style="font-size:12px; color:#10b981;">سيظهر في الكشوف</div>
+                        </div>
+                        <div style="padding:10px 20px; background:rgba(239, 68, 68, 0.15); border-radius:10px;">
+                            <div style="font-size:24px; font-weight:700; color:#ef4444;">${excluded.toLocaleString()}</div>
+                            <div style="font-size:12px; color:#ef4444;">مستبعد</div>
+                        </div>
+                        ${unknown > 0 ? `
+                        <div style="padding:10px 20px; background:rgba(245, 158, 11, 0.15); border-radius:10px;">
+                            <div style="font-size:24px; font-weight:700; color:#f59e0b;">${unknown.toLocaleString()}</div>
+                            <div style="font-size:12px; color:#f59e0b;">غير مصنف</div>
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
+
+            // Also update the small summary below status lists
+            const summaryEl = document.getElementById('statusSummaryStep2');
+            if (summaryEl) {
+                summaryEl.innerHTML = unknown > 0
+                    ? `<span style="color:#f59e0b; font-weight:600;">يوجد ${unknown} متدرب غير مصنف - يجب تصنيف الحالات قبل المتابعة</span>`
+                    : '';
+            }
+        }
+
+        function updateStatusFilter() {
+            sortOrder = document.querySelector('input[name="sortOrder"]:checked')?.value || 'traineeId';
+        }
+
+        // Step 4: Room Distribution
+        function populateStep4() {
+            roomNames = [];
+            const container = document.getElementById('roomSelectionMode');
+
+            if (ss01Data && ss01Data.length) {
+                const buildings = [...new Set(ss01Data.map(r => r['مبنى']).filter(Boolean))];
+                container.innerHTML = `
+                    <div class="form-group">
+                        <label class="form-label">اختر المبنى:</label>
+                        <select class="form-select" id="buildingSelect">
+                            <option value="">-- اختر المبنى --</option>
+                            ${buildings.map(b => `<option value="${b}">${b}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="room-status" id="roomStatus" style="display:none;">
+                        <span>تم اختيار: <span class="count" id="selectedCount">0</span> من <span class="count">${committeeCount}</span> قاعة</span>
+                        <span id="remainingText"></span>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">ابحث في القاعات:</label>
+                        <input type="text" class="form-input room-search" id="roomSearch" placeholder="اكتب للبحث..." oninput="filterRooms()">
+                    </div>
+                    <div class="room-grid" id="roomGrid"></div>
+                    <div id="maxReachedAlert" class="alert info" style="display:none;">تم اختيار العدد المطلوب من القاعات (${committeeCount})</div>
+                `;
+
+                document.getElementById('buildingSelect').onchange = (e) => {
+                    const building = e.target.value;
+                    allRoomsInBuilding = [...new Set(ss01Data.filter(r => r['مبنى'] === building).map(r => r['قاعة']).filter(Boolean))];
+                    roomNames = [];
+                    renderRoomGrid();
+                    document.getElementById('roomStatus').style.display = 'flex';
+                };
+            } else {
+                container.innerHTML = `
+                    <div class="alert warning">لم يتم رفع ملف SS01 ليتم اختيار القاعات. يمكنك حالياً إدخال أسماء القاعات يدوياً، أو ستظهر أسماء اللجان كما هو موضح في جدول معاينة التوزيع.</div>
+                    <div class="room-status">
+                        <span>تم إدخال: <span class="count" id="manualCount">0</span> من <span class="count">${committeeCount}</span> قاعة</span>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">أدخل أسماء القاعات:</label>
+                        <div class="room-input-group">
+                            <input type="text" class="form-input" id="roomInput" placeholder="اكتب اسم القاعة واضغط Enter">
+                            <button class="nav-btn next" onclick="addRoom()" style="padding:10px 20px;">إضافة</button>
+                        </div>
+                        <div class="room-chips" id="roomChips"></div>
+                    </div>
+                    <div id="manualMaxAlert" class="alert info" style="display:none;">تم إدخال العدد المطلوب من القاعات</div>
+                `;
+
+                document.getElementById('roomInput').onkeypress = (e) => {
+                    if (e.key === 'Enter') addRoom();
+                };
+            }
+
+            updateDistributionPreview();
+        }
+
+        function renderRoomGrid() {
+            const filter = (document.getElementById('roomSearch')?.value || '').toLowerCase();
+            let rooms = allRoomsInBuilding;
+            if (filter) rooms = rooms.filter(r => r.toLowerCase().includes(filter));
+
+            const isMaxReached = roomNames.length >= committeeCount;
+
+            document.getElementById('roomGrid').innerHTML = rooms.map(r => {
+                const isSelected = roomNames.includes(r);
+                const isDisabled = !isSelected && isMaxReached;
+                return `<label class="room-checkbox ${isSelected ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}" onclick="toggleRoom('${r}', event)">
+                    <input type="checkbox" ${isSelected ? 'checked' : ''} ${isDisabled ? 'disabled' : ''}> ${r}
+                </label>`;
+            }).join('');
+
+            document.getElementById('selectedCount').textContent = roomNames.length;
+            const remaining = committeeCount - roomNames.length;
+            document.getElementById('remainingText').textContent = remaining > 0 ? `(متبقي: ${remaining})` : '';
+            document.getElementById('maxReachedAlert').style.display = isMaxReached ? 'block' : 'none';
+        }
+
+        function filterRooms() {
+            renderRoomGrid();
+        }
+
+        function toggleRoom(name, e) {
+            e.preventDefault();
+            if (roomNames.includes(name)) {
+                roomNames = roomNames.filter(r => r !== name);
+            } else if (roomNames.length < committeeCount) {
+                roomNames.push(name);
+            } else {
+                showToast(`تم الوصول للحد الأقصى (${committeeCount} قاعة)`, 'warning');
+                return;
+            }
+            renderRoomGrid();
+            updateDistributionPreview();
+        }
+
+        function addRoom() {
+            const input = document.getElementById('roomInput');
+            const name = input.value.trim();
+
+            if (roomNames.length >= committeeCount) {
+                showToast(`تم الوصول للحد الأقصى (${committeeCount} قاعة)`, 'warning');
+                return;
+            }
+
+            if (name && !roomNames.includes(name)) {
+                roomNames.push(name);
+                input.value = '';
+                renderRoomChips();
+                updateDistributionPreview();
+            }
+        }
+
+        function removeRoom(name) {
+            roomNames = roomNames.filter(r => r !== name);
+            renderRoomChips();
+            updateDistributionPreview();
+        }
+
+        function renderRoomChips() {
+            document.getElementById('roomChips').innerHTML = roomNames.map(r =>
+                `<div class="room-chip">${r} <span class="remove" onclick="removeRoom('${r}')">✕</span></div>`
+            ).join('');
+            document.getElementById('manualCount').textContent = roomNames.length;
+            document.getElementById('manualMaxAlert').style.display = roomNames.length >= committeeCount ? 'block' : 'none';
+        }
+
+        function updateDistributionPreview() {
+            // Filter by course AND included statuses (same as generateReports)
+            let trainees = sf01Data.filter(r =>
+                r['المقرر'] === selectedCourse &&
+                includedStatuses.includes(r['حالة تسجيل'] || 'غير محدد')
+            );
+
+            // Fallback: if no trainees match filters, show all for course
+            if (trainees.length === 0) {
+                trainees = sf01Data.filter(r => r['المقرر'] === selectedCourse);
+            }
+
+            const n = trainees.length;
+            const rooms = roomNames.length || committeeCount;
+
+            const base = Math.floor(n / rooms);
+            const extra = n % rooms;
+
+            trainees.sort((a, b) => (a['رقم المتدرب'] || '').localeCompare(b['رقم المتدرب'] || ''));
+
+            let html = `<h3 style="margin-top:20px; color:var(--text-light);">معاينة التوزيع</h3>
+                <table class="distribution-table">
+                    <thead><tr><th>القاعة</th><th>عدد المتدربين</th></tr></thead>
+                    <tbody>`;
+
+            let start = 0;
+            for (let i = 0; i < rooms; i++) {
+                const size = base + (i < extra ? 1 : 0);
+                const roomName = roomNames[i] || `لجنة ${i + 1}`;
+                const firstId = trainees[start] ? trainees[start]['رقم المتدرب'] : '-';
+                const lastId = trainees[start + size - 1] ? trainees[start + size - 1]['رقم المتدرب'] : '-';
+                html += `<tr><td>${roomName}</td><td>${size}</td></tr>`;
+                start += size;
+            }
+
+            html += '</tbody></table>';
+            document.getElementById('distributionPreview').innerHTML = html;
+        }
+
+        // Step 5: Generate Reports
+        function generateReports() {
+            try {
+                // Filter by course and included statuses
+                let trainees = sf01Data.filter(r =>
+                    r['المقرر'] === selectedCourse &&
+                    includedStatuses.includes(r['حالة تسجيل'] || 'غير محدد')
+                );
+
+                // Fallback: if no trainees match, use all trainees for this course
+                if (trainees.length === 0) {
+                    trainees = sf01Data.filter(r => r['المقرر'] === selectedCourse);
+                }
+
+                // Apply sort order
+                const currentSortOrder = document.querySelector('input[name="sortOrder"]:checked')?.value || 'traineeId';
+
+                if (currentSortOrder === 'traineeId') {
+                    trainees.sort((a, b) => (a['رقم المتدرب'] || '').localeCompare(b['رقم المتدرب'] || ''));
+                } else if (currentSortOrder === 'instructor') {
+                    trainees.sort((a, b) => (a['المدرب'] || '').localeCompare(b['المدرب'] || ''));
+                } else if (currentSortOrder === 'traineeName') {
+                    trainees.sort((a, b) => (a['إسم المتدرب'] || a['اسم المتدرب'] || '').localeCompare(b['إسم المتدرب'] || b['اسم المتدرب'] || ''));
+                }
+
+                const courseName = trainees[0] ? trainees[0]['اسم المقرر'] : selectedCourse;
+                const collegeName = trainees[0] ? (trainees[0]['الوحدة'] || '') : '';
+                const semester = trainees[0] ? (trainees[0]['الفصل التدريبي'] || '') : '';
+
+                const rooms = roomNames.length || committeeCount;
+                const base = Math.floor(trainees.length / rooms);
+                const extra = trainees.length % rooms;
+
+                let html = '';
+                let start = 0;
+
+                for (let i = 0; i < rooms; i++) {
+                    const size = base + (i < extra ? 1 : 0);
+                    const roomName = roomNames[i] || `لجنة ${i + 1}`;
+                    const group = trainees.slice(start, start + size);
+                    const firstId = group[0] ? group[0]['رقم المتدرب'] : '-';
+                    const lastId = group[group.length - 1] ? group[group.length - 1]['رقم المتدرب'] : '-';
+
+                    // Dynamic header info based on sort type
+                    let rangeLabel, rangeValue;
+                    if (currentSortOrder === 'traineeId') {
+                        rangeLabel = 'نطاق الأرقام';
+                        rangeValue = `${firstId} - ${lastId}`;
+                    } else if (currentSortOrder === 'instructor') {
+                        const instructors = [...new Set(group.map(t => t['المدرب'] || 'غير محدد'))];
+                        rangeLabel = 'المدربون';
+                        rangeValue = instructors.join(' / ');
+                    } else { // traineeName
+                        const firstLetter = (group[0] ? (group[0]['إسم المتدرب'] || group[0]['اسم المتدرب'] || '')[0] : '');
+                        const lastLetter = (group[group.length - 1] ? (group[group.length - 1]['إسم المتدرب'] || group[group.length - 1]['اسم المتدرب'] || '')[0] : '');
+                        rangeLabel = 'نطاق الأحرف';
+                        rangeValue = firstLetter === lastLetter ? firstLetter : `${firstLetter} - ${lastLetter}`;
+                    }
+
+                    // Split committee into pages based on traineesPerPage
+                    const perPage = traineesPerPage || 20;
+                    const totalPages = Math.ceil(group.length / perPage);
+
+                    for (let pageNum = 0; pageNum < totalPages; pageNum++) {
+                        const pageStart = pageNum * perPage;
+                        const pageEnd = Math.min(pageStart + perPage, group.length);
+                        const pageGroup = group.slice(pageStart, pageEnd);
+                        const pageLabel = totalPages > 1 ? ` (صفحة ${pageNum + 1} من ${totalPages})` : '';
+
+                        html += `
+                    <div class="report-page">
+                        <div class="report-section">
+                            <table class="report-table">
+                                <thead>
+                                    <tr class="header-row">
+                                        <th colspan="5" style="background:#fff; border:none; padding:0;">
+                                            <div class="report-header">
+                                                <div class="header-top-row">
+                                                    <span class="header-right"><strong>الفصل التدريبي:</strong> ${semester}</span>
+                                                    <span class="header-center"><strong>الكلية:</strong> ${collegeName}</span>
+                                                    <span class="header-left"></span>
+                                                </div>
+                                                <h2>لجنة / قاعة: ${roomName}${pageLabel}</h2>
+                                                <div class="info">
+                                                    <span><strong>المقرر:</strong> ${selectedCourse} - ${courseName}</span>
+                                                    <span><strong>${rangeLabel}:</strong> ${rangeValue}</span>
+                                                    <span><strong>العدد:</strong> ${group.length} متدرب</span>
+                                                </div>
+                                            </div>
+                                        </th>
+                                    </tr>
+                                    <tr><th>#</th><th>رقم المتدرب</th><th>اسم المتدرب</th><th>رقم الشعبة</th><th>المدرب</th></tr>
+                                </thead>
+                                <tbody>
+                                    ${pageGroup.map((t, idx) => `
+                                        <tr>
+                                            <td>${pageStart + idx + 1}</td>
+                                            <td>${t['رقم المتدرب'] || ''}</td>
+                                            <td>${t['إسم المتدرب'] || t['اسم المتدرب'] || ''}</td>
+                                            <td>${t['الرقم المرجعي'] || ''}</td>
+                                            <td>${t['المدرب'] || ''}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+                    }
+                    start += size;
+                }
+
+                document.getElementById('reportsContainer').innerHTML = html;
+
+            } catch (e) {
+                console.error('Error generating reports:', e);
+                showToast('حدث خطأ في إنشاء التقارير', 'error');
+            }
+        }
+
+        function printReports() {
+            // Set page title to include course name
+            const courseName = sf01Data.find(r => r['المقرر'] === selectedCourse)?.['اسم المقرر'] || selectedCourse;
+            document.title = `توزيع المتدربين - ${courseName}`;
+
+            window.print();
+        }
+
+        function updateFontSize() {
+            const size = document.getElementById('fontSizeSlider').value;
+            document.getElementById('fontSizeValue').textContent = size + 'pt';
+
+            // Apply to all report tables
+            document.querySelectorAll('.report-table').forEach(table => {
+                table.style.fontSize = size + 'pt';
+            });
+            document.querySelectorAll('.report-table th, .report-table td').forEach(cell => {
+                cell.style.fontSize = size + 'pt';
+            });
+            document.querySelectorAll('.report-header h2').forEach(h2 => {
+                h2.style.fontSize = (parseInt(size) + 4) + 'pt';
+            });
+            document.querySelectorAll('.report-header .info').forEach(info => {
+                info.style.fontSize = size + 'pt';
+            });
+        }
+
+        function updateTraineesPerPage() {
+            const value = parseInt(document.getElementById('traineesPerPage').value);
+            if (value >= 5 && value <= 50) {
+                traineesPerPage = value;
+                generateReports(); // Regenerate reports with new pagination
+            }
+        }
+
+        function updateRowHeight() {
+            const level = parseInt(document.getElementById('rowHeightSlider').value);
+            const labelEl = document.getElementById('rowHeightLabel');
+            const container = document.querySelector('.wizard-container');
+
+            // Map levels to padding values and labels
+            const paddingMap = {
+                1: { padding: '2px 5px', label: 'صغير جداً' },
+                2: { padding: '4px 5px', label: 'صغير' },
+                3: { padding: '6px 5px', label: 'متوسط' },
+                4: { padding: '8px 5px', label: 'كبير' },
+                5: { padding: '10px 5px', label: 'كبير جداً' }
+            };
+
+            const config = paddingMap[level];
+            labelEl.textContent = config.label;
+
+            // Set CSS custom property on container - this affects print CSS too!
+            container.style.setProperty('--row-padding', config.padding);
+
+            // Also apply inline for immediate visual feedback
+            document.querySelectorAll('.report-table td').forEach(cell => {
+                cell.style.padding = config.padding;
+            });
+        }
+
+        function setRowHeight(level) {
+            const container = document.querySelector('.wizard-container');
+
+            // Map levels to padding values
+            const paddingMap = {
+                1: '2px 5px',
+                2: '4px 5px',
+                3: '6px 5px',
+                4: '8px 5px',
+                5: '10px 5px'
+            };
+
+            const padding = paddingMap[level];
+
+            // Update circle styles
+            document.querySelectorAll('.row-height-circle').forEach(circle => {
+                const circleLevel = parseInt(circle.getAttribute('data-level'));
+                if (circleLevel === level) {
+                    circle.style.background = 'var(--accent-green)';
+                    circle.style.border = '3px solid var(--accent-green)';
+                } else {
+                    circle.style.background = 'var(--bg-header)';
+                    circle.style.border = '3px solid var(--border-dark)';
+                }
+            });
+
+            // Set CSS custom property on container - affects print CSS too!
+            container.style.setProperty('--row-padding', padding);
+
+            // Apply inline for immediate visual feedback
+            document.querySelectorAll('.report-table td').forEach(cell => {
+                cell.style.padding = padding;
+            });
+        }
+
+
+
+        function exportToExcel() {
+            // Check if reports exist
+            const reportPages = document.querySelectorAll('.report-page');
+            if (reportPages.length === 0) {
+                showToast('لا توجد تقارير للتصدير. تأكد من إنشاء التقارير أولاً.', 'warning');
+                return;
+            }
+
+            showToast('جاري تحميل مكتبة Excel...', 'info');
+
+            // Get course info
+            const courseData = sf01Data.find(r => r['المقرر'] === selectedCourse);
+            const courseName = courseData?.['اسم المقرر'] || selectedCourse;
+            const collegeName = courseData?.['الوحدة'] || '';
+            const semester = courseData?.['الفصل التدريبي'] || '';
+            const totalTrainees = document.querySelectorAll('.report-page .report-table tbody tr').length;
+
+            // Create a temporary consolidated table from all report tables
+            const tempTable = document.createElement('table');
+            tempTable.id = 'tempExportTable';
+            tempTable.style.display = 'none';
+
+            // Add info header rows first
+            const thead = document.createElement('thead');
+            thead.innerHTML = `
+                <tr><th colspan="6">توزيع المتدربين على لجان الاختبارات</th></tr>
+                <tr><td>رمز المقرر:</td><td colspan="5">${selectedCourse}</td></tr>
+                <tr><td>اسم المقرر:</td><td colspan="5">${courseName}</td></tr>
+                <tr><td>الكلية / الوحدة:</td><td colspan="5">${collegeName}</td></tr>
+                <tr><td>الفصل التدريبي:</td><td colspan="5">${semester}</td></tr>
+                <tr><td>إجمالي المتدربين:</td><td colspan="5">${totalTrainees}</td></tr>
+                <tr><td colspan="6"></td></tr>
+                <tr>
+                    <th>اللجنة</th>
+                    <th>#</th>
+                    <th>رقم المتدرب</th>
+                    <th>اسم المتدرب</th>
+                    <th>رقم الشعبة</th>
+                    <th>المدرب</th>
+                </tr>
+            `;
+            tempTable.appendChild(thead);
+
+            // Add data from all report tables
+            const tbody = document.createElement('tbody');
+            let rowCount = 0;
+
+            reportPages.forEach((page, pageIdx) => {
+                const roomName = page.querySelector('.report-header h2')?.textContent?.replace('لجنة / قاعة:', '').trim() || `لجنة ${pageIdx + 1}`;
+                const rows = page.querySelectorAll('.report-table tbody tr');
+
+                rows.forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    if (cells.length >= 5) {
+                        const newRow = document.createElement('tr');
+                        newRow.innerHTML = `
+                            <td>${roomName}</td>
+                            <td>${cells[0]?.textContent || ''}</td>
+                            <td>${cells[1]?.textContent || ''}</td>
+                            <td>${cells[2]?.textContent || ''}</td>
+                            <td>${cells[3]?.textContent || ''}</td>
+                            <td>${cells[4]?.textContent || ''}</td>
+                        `;
+                        tbody.appendChild(newRow);
+                        rowCount++;
+                    }
+                });
+            });
+            tempTable.appendChild(tbody);
+
+            if (rowCount === 0) {
+                showToast('لا توجد بيانات للتصدير.', 'warning');
+                return;
+            }
+
+            document.body.appendChild(tempTable);
+
+            // Load XLSX library and export
+            if (typeof XLSX === 'undefined') {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js';
+                script.onload = () => {
+                    generateExcelFromTable(tempTable, courseName);
+                };
+                script.onerror = () => {
+                    showToast('❌ فشل تحميل مكتبة Excel. تحقق من اتصال الإنترنت.', 'error');
+                    document.body.removeChild(tempTable);
+                };
+                document.head.appendChild(script);
+            } else {
+                generateExcelFromTable(tempTable, courseName);
+            }
+        }
+
+        function generateExcelFromTable(table, courseName) {
+            try {
+                const ws = XLSX.utils.table_to_sheet(table, { raw: true });
+                const range = XLSX.utils.decode_range(ws['!ref']);
+
+                const baseBorder = {
+                    top: { style: 'thin', color: { rgb: '333333' } },
+                    bottom: { style: 'thin', color: { rgb: '333333' } },
+                    left: { style: 'thin', color: { rgb: '333333' } },
+                    right: { style: 'thin', color: { rgb: '333333' } }
+                };
+
+                const headerRowIndex = 7; // Row 7 is the column headers (0-indexed)
+
+                // Style cells
+                for (let R = range.s.r; R <= range.e.r; R++) {
+                    for (let C = range.s.c; C <= range.e.c; C++) {
+                        const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
+                        if (!ws[cellRef]) continue;
+
+                        if (R === 0) {
+                            // Title row - Gold background
+                            ws[cellRef].s = {
+                                fill: { fgColor: { rgb: 'D4A017' } },
+                                font: { color: { rgb: 'FFFFFF' }, bold: true, sz: 14 },
+                                alignment: { horizontal: 'center', vertical: 'center' },
+                                border: baseBorder
+                            };
+                        } else if (R >= 1 && R <= 5) {
+                            // Info rows - Light gray background
+                            ws[cellRef].s = {
+                                fill: { fgColor: { rgb: C === 0 ? 'E5E7EB' : 'FFFFFF' } },
+                                font: { sz: 11, bold: C === 0 },
+                                alignment: { horizontal: 'right', vertical: 'center' },
+                                border: baseBorder
+                            };
+                        } else if (R === 6) {
+                            // Empty separator row
+                            ws[cellRef].s = {
+                                fill: { fgColor: { rgb: 'FFFFFF' } },
+                                border: {}
+                            };
+                        } else if (R === headerRowIndex) {
+                            // Column headers - Dark blue
+                            ws[cellRef].s = {
+                                fill: { fgColor: { rgb: '1E3A5F' } },
+                                font: { color: { rgb: 'FFFFFF' }, bold: true, sz: 11 },
+                                alignment: { horizontal: 'center', vertical: 'center' },
+                                border: baseBorder
+                            };
+                        } else {
+                            // Data rows - Alternating colors
+                            ws[cellRef].s = {
+                                fill: { fgColor: { rgb: (R - headerRowIndex) % 2 === 0 ? 'F9FAFB' : 'FFFFFF' } },
+                                font: { sz: 10 },
+                                alignment: { horizontal: 'center', vertical: 'center' },
+                                border: baseBorder
+                            };
+                        }
+                    }
+                }
+
+                // Set column widths
+                ws['!cols'] = [
+                    { wch: 18 }, // اللجنة / العمود الأول
+                    { wch: 5 },  // #
+                    { wch: 12 }, // رقم المتدرب
+                    { wch: 30 }, // اسم المتدرب
+                    { wch: 10 }, // رقم الشعبة
+                    { wch: 28 }  // المدرب
+                ];
+
+                const wb = XLSX.utils.book_new();
+                wb.Workbook = { Views: [{ RTL: true }] };
+                XLSX.utils.book_append_sheet(wb, ws, 'التوزيع');
+
+                const fileName = `توزيع_${selectedCourse}_${courseName}.xlsx`;
+                XLSX.writeFile(wb, fileName);
+
+                showToast('تم تصدير ملف Excel بنجاح ✅', 'success');
+            } catch (err) {
+                console.error('Excel export error:', err);
+                showToast('حدث خطأ في التصدير: ' + err.message, 'error');
+            } finally {
+                document.body.removeChild(table);
+            }
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') nextStep();
+            if (e.key === 'ArrowRight') previousStep();
+            if (e.ctrlKey && e.key === 'p') { e.preventDefault(); window.print(); }
+        });
+
+        // Initialize Lucide icons
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>
