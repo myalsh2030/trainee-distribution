@@ -2906,9 +2906,13 @@
         }
 
         function printReports() {
-            // Set page title to include course name
-            const courseName = sf01Data.find(r => r['المقرر'] === selectedCourse)?.['اسم المقرر'] || selectedCourse;
-            document.title = `توزيع المتدربين - ${courseName}`;
+            // Set page title to include course names
+            const courseNames = selectedCourses.map(key => {
+                const [code] = key.split('|');
+                const course = sf01Data.find(r => r['المقرر'] === code);
+                return course ? course['اسم المقرر'] : code;
+            }).join(' | ');
+            document.title = `توزيع المتدربين - ${courseNames || 'لجان الاختبارات'}`;
 
             window.print();
         }
