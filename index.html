@@ -972,12 +972,16 @@
                 font-size: 10pt !important;
             }
 
-            .report-table td:nth-child(3),
-            .report-table td:nth-child(5) {
+            /* Allow trainee name to wrap */
+            .report-table td:nth-child(3) {
+                word-wrap: break-word !important;
+                white-space: normal !important;
+                max-width: 200px !important;
+            }
+
+            /* Keep trainee ID on one line */
+            .report-table td:nth-child(2) {
                 white-space: nowrap !important;
-                overflow: hidden !important;
-                text-overflow: ellipsis !important;
-                max-width: 140px !important;
             }
 
             /* تكرار رأس الجدول في كل صفحة */
@@ -994,7 +998,7 @@
             }
         }
 
-        /* Print Styles - Force each report on new page */
+        /* Additional Print Styles - Force each report on new page */
         @media print {
             .no-print {
                 display: none !important;
@@ -1034,6 +1038,127 @@
                 break-inside: avoid;
             }
         }
+
+        /* Committee Distribution Table */
+        .committee-dist-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .committee-dist-toolbar button {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border-dark);
+            background: var(--bg-card);
+            color: var(--text-light);
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .committee-dist-toolbar button:hover {
+            background: var(--accent-blue);
+            color: #fff;
+        }
+
+        .committee-dist-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+
+        .committee-dist-table th,
+        .committee-dist-table td {
+            padding: 10px 12px;
+            text-align: center;
+            border: 1px solid var(--border-dark);
+        }
+
+        .committee-dist-table th {
+            background: var(--bg-header);
+            color: var(--text-light);
+            font-weight: 600;
+        }
+
+        .committee-dist-table tr.warning-row {
+            background: rgba(239, 68, 68, 0.15);
+        }
+
+        .committee-dist-table tr.warning-row td:first-child {
+            color: #ef4444;
+            font-weight: 600;
+        }
+
+        .committee-dist-table .count-input {
+            width: 60px;
+            padding: 6px 8px;
+            border-radius: 6px;
+            border: 1px solid var(--border-dark);
+            background: var(--bg-card);
+            color: var(--text-light);
+            text-align: center;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .committee-dist-table .count-input:focus {
+            outline: none;
+            border-color: var(--accent-gold);
+        }
+
+        .committee-dist-table .action-btn {
+            padding: 6px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: transparent;
+        }
+
+        .committee-dist-table .lock-btn {
+            color: var(--accent-blue);
+        }
+
+        .committee-dist-table .lock-btn.locked {
+            color: var(--accent-gold);
+        }
+
+        .committee-dist-table .delete-btn {
+            color: #9ca3af;
+        }
+
+        .committee-dist-table .delete-btn:hover {
+            color: #ef4444;
+        }
+
+        .total-bar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .total-bar.balanced {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent-green);
+        }
+
+        .total-bar.unbalanced {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+        }
     </style>
 </head>
 
@@ -1065,10 +1190,12 @@
             <div class="step" data-step="2" onclick="goToStep(2)"><span class="step-number">2</span><span
                     class="step-label">الأقسام والحالات</span></div>
             <div class="step" data-step="3" onclick="goToStep(3)"><span class="step-number">3</span><span
-                    class="step-label">اختيار المقرر وعدد اللجان</span></div>
+                    class="step-label">اختيار المقرر</span></div>
             <div class="step" data-step="4" onclick="goToStep(4)"><span class="step-number">4</span><span
-                    class="step-label">توزيع القاعات/اللجان</span></div>
+                    class="step-label">عدد اللجان</span></div>
             <div class="step" data-step="5" onclick="goToStep(5)"><span class="step-number">5</span><span
+                    class="step-label">توزيع القاعات</span></div>
+            <div class="step" data-step="6" onclick="goToStep(6)"><span class="step-number">6</span><span
                     class="step-label">التقارير</span></div>
         </div>
 
@@ -1185,9 +1312,8 @@
                     <h3 style="color:var(--text-light); margin-bottom:15px; display:flex; align-items:center; gap:8px;">
                         <i data-lucide="landmark" style="width:20px; height:20px;"></i> اختر القسم:
                     </h3>
-                    <select class="form-select" id="departmentSelect">
-                        <option value="">-- اختر القسم --</option>
-                    </select>
+                    <div id="departmentButtons" style="display:flex; flex-wrap:wrap; gap:10px; justify-content:center;">
+                    </div>
                 </div>
                 <div class="form-group">
                     <h3 style="color:var(--text-light); margin-bottom:15px; display:flex; align-items:center; gap:8px;">
@@ -1195,41 +1321,66 @@
                     </h3>
                     <input type="text" class="form-input" id="courseFilter" placeholder="ابحث برمز أو اسم المقرر...">
                 </div>
-                <div class="course-list" id="courseList"></div>
 
-                <!-- Committee Options -->
-                <div id="committeeOptionsSection" style="display:none;">
-                    <h3
-                        style="margin-top:25px; color:var(--text-light); margin-bottom:15px; display:flex; align-items:center; gap:8px;">
-                        <i data-lucide="settings" style="width:20px; height:20px;"></i> تحديد عدد اللجان
-                    </h3>
-                    <div class="committee-options">
-                        <div class="committee-option active" id="optionByRooms" onclick="switchCommitteeMode('rooms')">
-                            <h4 style="display:flex; align-items:center; gap:6px;"><i data-lucide="door-open"
-                                    style="width:18px; height:18px;"></i> تحديد عدد القاعات</h4>
-                            <div class="input-row">
-                                <input type="number" class="form-input" id="committeeCount" min="1" max="50" value="1"
-                                    oninput="updateCommitteeCalc()">
-                                <span style="color:var(--text-muted);">قاعة</span>
-                            </div>
-                            <div class="result" id="traineesPerRoomResult"></div>
+                <!-- Selected Courses Chip Bar -->
+                <div id="selectedCoursesChipBar"
+                    style="display:none; background:var(--bg-card); border-radius:12px; padding:12px; margin-bottom:15px; border:1px solid var(--accent-green);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <span style="color:var(--text-light); font-size:13px; font-weight:600;">
+                            <i data-lucide="check-square" style="width:16px; height:16px; vertical-align:middle;"></i>
+                            المقررات المختارة (<span id="selectedCoursesCount">0</span>):
+                        </span>
+                        <button id="clearAllCoursesBtn" onclick="clearAllSelectedCourses()"
+                            style="display:none; background:rgba(239,68,68,0.15); color:#ef4444; border:none; padding:4px 10px; border-radius:6px; cursor:pointer; font-size:12px; font-family:inherit;">
+                            <i data-lucide="trash-2" style="width:14px; height:14px; vertical-align:middle;"></i> إزالة
+                            الكل
+                        </button>
+                    </div>
+                    <div id="selectedCoursesChips" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+                </div>
+
+                <div class="course-list" id="courseList"></div>
+            </div>
+
+            <!-- Step 4: Committee Count (NEW) -->
+            <div class="step-content" id="step4">
+                <h2
+                    style="text-align:center; color: var(--text-light); margin-bottom: 20px; display:flex; align-items:center; justify-content:center; gap:10px;">
+                    <i data-lucide="settings" style="width:24px; height:24px;"></i> تحديد عدد اللجان
+                </h2>
+
+                <!-- Selected courses summary -->
+                <div id="selectedCoursesSummary"
+                    style="background:var(--bg-card); border-radius:12px; padding:15px; margin-bottom:20px; border:1px solid var(--border-dark);">
+                </div>
+
+                <div class="committee-options">
+                    <div class="committee-option" id="optionByRooms" onclick="switchCommitteeMode('rooms')">
+                        <h4 style="display:flex; align-items:center; gap:6px;"><i data-lucide="door-open"
+                                style="width:18px; height:18px;"></i> تحديد عدد القاعات</h4>
+                        <div class="input-row">
+                            <input type="number" class="form-input" id="committeeCount" min="1" max="50" value="1"
+                                oninput="updateCommitteeCalc()">
+                            <span style="color:var(--text-muted);">قاعة</span>
                         </div>
-                        <div class="committee-option" id="optionByTrainees" onclick="switchCommitteeMode('trainees')">
-                            <h4 style="display:flex; align-items:center; gap:6px;"><i data-lucide="users"
-                                    style="width:18px; height:18px;"></i> تحديد عدد المتدربين باللجنة</h4>
-                            <div class="input-row">
-                                <input type="number" class="form-input" id="traineesPerRoom" min="1" max="100"
-                                    value="30" oninput="updateCommitteeCalc()">
-                                <span style="color:var(--text-muted);">متدرب</span>
-                            </div>
-                            <div class="result" id="roomsNeededResult"></div>
+                        <div class="result" id="traineesPerRoomResult"></div>
+                    </div>
+                    <div class="committee-option active" id="optionByTrainees"
+                        onclick="switchCommitteeMode('trainees')">
+                        <h4 style="display:flex; align-items:center; gap:6px;"><i data-lucide="users"
+                                style="width:18px; height:18px;"></i> تحديد عدد المتدربين بكل لجنة/قاعة</h4>
+                        <div class="input-row">
+                            <input type="number" class="form-input" id="traineesPerRoom" min="1" max="100" value="30"
+                                oninput="updateCommitteeCalc()">
+                            <span style="color:var(--text-muted);">متدرب</span>
                         </div>
+                        <div class="result" id="roomsNeededResult"></div>
                     </div>
                 </div>
             </div>
 
-            <!-- Step 4: Room Distribution -->
-            <div class="step-content" id="step4">
+            <!-- Step 5: Room Distribution (was step4) -->
+            <div class="step-content" id="step5">
                 <h2
                     style="text-align:center; color: var(--text-light); margin-bottom: 20px; display:flex; align-items:center; justify-content:center; gap:10px;">
                     <i data-lucide="building-2" style="width:24px; height:24px;"></i> توزيع القاعات/اللجان
@@ -1238,8 +1389,8 @@
                 <div id="distributionPreview"></div>
             </div>
 
-            <!-- Step 5: Reports -->
-            <div class="step-content" id="step5">
+            <!-- Step 6: Reports (was step5) -->
+            <div class="step-content" id="step6">
                 <!-- Sort Options -->
                 <div class="no-print"
                     style="background:var(--bg-card); border-radius:12px; padding:15px; margin-bottom:20px; border:1px solid var(--border-dark);">
@@ -1250,6 +1401,10 @@
                         <label class="sort-option">
                             <input type="radio" name="sortOrder" value="traineeId" checked onchange="generateReports()">
                             <span>حسب الرقم التدريبي</span>
+                        </label>
+                        <label class="sort-option">
+                            <input type="radio" name="sortOrder" value="referenceNumber" onchange="generateReports()">
+                            <span>حسب الرقم المرجعي</span>
                         </label>
                         <label class="sort-option">
                             <input type="radio" name="sortOrder" value="instructor" onchange="generateReports()">
@@ -1352,7 +1507,7 @@
         let selectedDepartment = null, selectedCourse = null;
         let selectedCourseTraineeCount = 0;
         let committeeCount = 1;
-        let committeeMode = 'rooms'; // 'rooms' or 'trainees'
+        let committeeMode = 'trainees'; // 'rooms' or 'trainees' - default is trainees
         let roomNames = [];
         let allRoomsInBuilding = [];
 
@@ -1376,6 +1531,9 @@
         let selectedStatusItem = null;
         let sortOrder = 'traineeId';
         let traineesPerPage = 20; // Default trainees per page for PDF
+        let selectedCourses = []; // Array for multiple course selection
+        let committeeDistribution = []; // [{name: 'لجنة 1', count: 15, locked: false}, ...]
+        let totalTraineesCount = 0; // Total trainees for selected courses
         // Configure app database (uses shared utils.js)
         configureDB('traineeDistributionDB');
 
@@ -1521,14 +1679,35 @@
                 }
                 return sf01Data !== null;
             }
-            if (currentStep === 3) return selectedCourse !== null;
-            if (currentStep === 4) return true;
+            if (currentStep === 3) return selectedCourses.length > 0;
+            if (currentStep === 4) return committeeCount > 0;
+            if (currentStep === 5) return true;
+            if (currentStep === 6) return true;
             return true;
+        }
+
+        function updateStepClickability() {
+            // Check if we can proceed to next step
+            const canGoNext = canProceed();
+
+            // Mark steps as clickable
+            document.querySelectorAll('.step').forEach((el, i) => {
+                const stepNum = i + 1;
+                // Clickable if: already reached, OR is next step and can proceed
+                if (stepNum <= maxReachedStep || (stepNum === currentStep + 1 && canGoNext)) {
+                    el.classList.add('clickable');
+                } else {
+                    el.classList.remove('clickable');
+                }
+            });
         }
 
         function goToStep(step) {
             const stepEl = document.querySelector(`.step[data-step="${step}"]`);
-            if (!stepEl.classList.contains('clickable') && step !== currentStep) {
+
+            // Allow clicking if: already clickable, is current step, or is next step and can proceed
+            const canClickNext = (step === currentStep + 1) && canProceed();
+            if (!stepEl.classList.contains('clickable') && step !== currentStep && !canClickNext) {
                 showToast('أكمل الخطوات السابقة أولاً', 'error');
                 return;
             }
@@ -1557,7 +1736,7 @@
             });
 
             document.getElementById('prevBtn').disabled = currentStep === 1;
-            document.getElementById('nextBtn').textContent = currentStep === 5 ? 'إنهاء' : 'التالي ←';
+            document.getElementById('nextBtn').textContent = currentStep === 6 ? 'إنهاء' : 'التالي ←';
             updateStepClickability();
 
             // Scroll to top
@@ -1572,18 +1751,21 @@
             }
             if (currentStep === 2) populateStep3();
             if (currentStep === 3) {
-                if (!selectedCourse) { showToast('يرجى اختيار مقرر', 'error'); return; }
-                finalizeCommitteeCount();
+                if (selectedCourses.length === 0) { showToast('يرجى اختيار مقرر واحد على الأقل', 'error'); return; }
                 populateStep4();
             }
-            if (currentStep === 4) generateReports();
+            if (currentStep === 4) {
+                finalizeCommitteeCount();
+                populateStep5();
+            }
+            if (currentStep === 5) generateReports();
 
-            if (currentStep < 5) {
+            if (currentStep < 6) {
                 currentStep++;
                 maxReachedStep = Math.max(maxReachedStep, currentStep);
                 if (currentStep === 2) populateStep2();
                 updateStepUI();
-            } else if (currentStep === 5) {
+            } else if (currentStep === 6) {
                 // Show finish dialog
                 showFinishDialog();
             }
@@ -1629,7 +1811,8 @@
             document.getElementById('finishDialog')?.remove();
 
             // Reset selection and go to step 3
-            selectedCourse = null;
+            selectedCourses = [];
+            committeeDistribution = []; // Reset distribution for new course
             currentStep = 3;
             populateStep3();
             updateStepUI();
@@ -1697,36 +1880,93 @@
         // Step 3: Course Selection
         function populateStep3() {
             const departments = [...new Set(sf01Data.map(r => r['القسم']).filter(Boolean))];
-            const select = document.getElementById('departmentSelect');
-            select.innerHTML = '<option value="">-- اختر القسم --</option>' +
-                departments.map(d => `<option value="${d}">${d}</option>`).join('');
+            const container = document.getElementById('departmentButtons');
 
-            select.onchange = () => {
-                selectedDepartment = select.value;
-                selectedCourse = null;
-                document.getElementById('committeeOptionsSection').style.display = 'none';
-                renderCourses();
-            };
+            // Calculate course count per department
+            const deptCourseCounts = {};
+            departments.forEach(dept => {
+                const deptCourses = sf01Data.filter(r =>
+                    r['القسم'] === dept &&
+                    parseInt(r['الساعات المعتمدة'] || '0') > 0 &&
+                    r['نوع الجدولة'] !== 'عملي صباحي'
+                );
+                // Count unique course+scheduleType combinations
+                const uniqueCourses = new Set(deptCourses.map(r => `${r['المقرر']}|${r['نوع الجدولة']}`));
+                deptCourseCounts[dept] = uniqueCourses.size;
+            });
+
+            container.innerHTML = departments.map(d => `
+                <button class="dept-btn ${selectedDepartment === d ? 'active' : ''}" 
+                        onclick="selectDepartment('${d}')"
+                        style="padding: 12px 20px; border-radius: 10px; border: 1px solid var(--border-dark); 
+                               background: ${selectedDepartment === d ? 'var(--accent-blue)' : 'var(--bg-card)'}; 
+                               color: ${selectedDepartment === d ? '#fff' : 'var(--text-light)'}; 
+                               cursor: pointer; font-family: inherit; font-size: 14px; font-weight: 600;
+                               transition: all 0.2s ease; display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="building" style="width:16px; height:16px;"></i>
+                    ${d}
+                    <span style="background: ${selectedDepartment === d ? 'rgba(255,255,255,0.2)' : 'var(--accent-gold)'}; 
+                                 color: ${selectedDepartment === d ? '#fff' : '#000'}; 
+                                 padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 700;
+                                 min-width: 24px; text-align: center;">${deptCourseCounts[d]}</span>
+                </button>
+            `).join('');
+
+            // Reinitialize Lucide icons for new buttons
+            if (typeof lucide !== 'undefined') lucide.createIcons();
 
             document.getElementById('courseFilter').oninput = renderCourses;
         }
 
+        function selectDepartment(dept) {
+            selectedDepartment = dept;
+            selectedCourses = [];
+            populateStep3(); // Re-render buttons to show active state
+            renderCourses();
+            updateSelectedCoursesChipBar();
+        }
+
+        // Generate unique color for each schedule type based on string hash
+        function getScheduleTypeColor(text) {
+            let hash = 0;
+            for (let i = 0; i < text.length; i++) {
+                hash = text.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            // Use HSL for vibrant colors with good contrast
+            const hue = Math.abs(hash % 360);
+            return `hsl(${hue}, 70%, 45%)`;
+        }
+
         function renderCourses() {
             const filter = document.getElementById('courseFilter').value.toLowerCase();
-            let filtered = sf01Data.filter(r => r['القسم'] === selectedDepartment);
 
+            // Check if there are practical courses to show alert
+            const hasPracticalCourses = sf01Data.some(r =>
+                r['القسم'] === selectedDepartment && r['نوع الجدولة'] === 'عملي صباحي'
+            );
+
+            // Filter by department AND exclude courses with 0 credit hours AND exclude practical courses
+            let filtered = sf01Data.filter(r =>
+                r['القسم'] === selectedDepartment &&
+                parseInt(r['الساعات المعتمدة'] || '0') > 0 &&
+                r['نوع الجدولة'] !== 'عملي صباحي'
+            );
+
+            // Group by course code + schedule type (unique key)
             const courses = {};
             filtered.forEach(r => {
                 const code = r['المقرر'] || '';
                 const name = r['اسم المقرر'] || '';
+                const scheduleType = r['نوع الجدولة'] || 'غير محدد';
                 const status = r['حالة تسجيل'] || 'غير محدد';
+                const key = `${code}|${scheduleType}`; // Unique key per course+scheduleType
 
-                if (!courses[code]) courses[code] = { code, name, count: 0, totalCount: 0 };
-                courses[code].totalCount++;
+                if (!courses[key]) courses[key] = { code, name, scheduleType, count: 0, totalCount: 0 };
+                courses[key].totalCount++;
 
                 // Only count if status is in included list
                 if (includedStatuses.includes(status)) {
-                    courses[code].count++;
+                    courses[key].count++;
                 }
             });
 
@@ -1736,27 +1976,168 @@
             if (filter) {
                 courseList = courseList.filter(c =>
                     c.code.toLowerCase().includes(filter) ||
-                    c.name.toLowerCase().includes(filter)
+                    c.name.toLowerCase().includes(filter) ||
+                    c.scheduleType.toLowerCase().includes(filter)
                 );
             }
 
-            document.getElementById('courseList').innerHTML = courseList.length ?
-                courseList.map(c => `
-                    <div class="course-item ${selectedCourse === c.code ? 'selected' : ''}" onclick="selectCourse('${c.code}', ${c.count})">
-                        <div><span class="course-code">${c.code}</span> - <span class="course-name">${c.name}</span></div>
+            // Sort by code then schedule type
+            courseList.sort((a, b) => a.code.localeCompare(b.code) || a.scheduleType.localeCompare(b.scheduleType));
+
+            // Separate selected and unselected courses
+            const selectedList = courseList.filter(c => selectedCourses.includes(`${c.code}|${c.scheduleType}`));
+            const unselectedList = courseList.filter(c => !selectedCourses.includes(`${c.code}|${c.scheduleType}`));
+
+            // Build HTML
+            let html = '';
+
+            // Practical courses warning
+            if (hasPracticalCourses) {
+                html += '<div class="alert warning" style="margin-bottom:15px; font-size:12px;">تم استبعاد المقررات بنوع جدولة "عملي"</div>';
+            }
+
+            // Selected courses section (at top)
+            if (selectedList.length > 0) {
+                html += `
+                    <div style="background:rgba(16, 185, 129, 0.1); border:1px solid var(--accent-green); border-radius:12px; padding:12px; margin-bottom:15px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                            <span style="color:var(--accent-green); font-weight:600; font-size:14px;">
+                                ✓ المقررات المختارة (${selectedList.length})
+                            </span>
+                            ${selectedList.length > 1 ? `
+                                <button onclick="clearAllSelectedCourses()" 
+                                    style="background:rgba(239,68,68,0.15); color:#ef4444; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:12px; font-family:inherit; display:flex; align-items:center; gap:4px;">
+                                    <span style="font-weight:700;">✕</span> إزالة الكل
+                                </button>
+                            ` : ''}
+                        </div>
+                        ${selectedList.map(c => {
+                    const key = `${c.code}|${c.scheduleType}`;
+                    return `
+                            <div class="course-item selected" style="background:rgba(16, 185, 129, 0.15); border-color:var(--accent-green); margin-bottom:8px;" onclick="toggleCourse('${key}', ${c.count})">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span style="color:var(--accent-green); font-size:18px;">✓</span>
+                                    <span class="course-code">${c.code}</span> - 
+                                    <span class="course-name">${c.name}</span>
+                                    <span style="background:${getScheduleTypeColor(c.scheduleType)}; color:#fff; padding:2px 8px; border-radius:10px; font-size:10px;">${c.scheduleType}</span>
+                                </div>
+                                <div style="display:flex; align-items:center; gap:10px;">
+                                    <span class="course-count" style="color:var(--accent-gold); font-weight:700;">${c.count}</span>
+                                    <span onclick="event.stopPropagation(); toggleCourse('${key}', ${c.count})" 
+                                          style="background:rgba(239,68,68,0.2); color:#ef4444; padding:4px 8px; border-radius:4px; cursor:pointer; font-weight:700;">✕</span>
+                                </div>
+                            </div>`;
+                }).join('')}
+                    </div>
+                `;
+            }
+
+            // Unselected courses section
+            html += unselectedList.length ?
+                unselectedList.map(c => {
+                    const key = `${c.code}|${c.scheduleType}`;
+                    return `
+                    <div class="course-item" onclick="toggleCourse('${key}', ${c.count})">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <input type="checkbox" onclick="event.stopPropagation(); toggleCourse('${key}', ${c.count})" style="width:16px; height:16px;">
+                            <span class="course-code">${c.code}</span> - 
+                            <span class="course-name">${c.name}</span>
+                            <span style="background:${getScheduleTypeColor(c.scheduleType)}; color:#fff; padding:2px 8px; border-radius:10px; font-size:10px;">${c.scheduleType}</span>
+                        </div>
                         <span class="course-count">${c.count}${c.count !== c.totalCount ? ` <small style="opacity:0.6">(من ${c.totalCount})</small>` : ''}</span>
                     </div>
-                `).join('') : '<div style="padding:20px; text-align:center; color:var(--text-muted);">لا توجد مقررات</div>';
+                `}).join('') : (selectedList.length === 0 ? '<div style="padding:20px; text-align:center; color:var(--text-muted);">لا توجد مقررات</div>' : '');
+
+            document.getElementById('courseList').innerHTML = html;
+
+            // Update selected count
+            updateSelectedCoursesCount();
+        }
+
+        function updateSelectedCoursesCount() {
+            // Calculate total trainees for selected courses
+            let totalCount = 0;
+            selectedCourses.forEach(key => {
+                const [code, scheduleType] = key.split('|');
+                const count = sf01Data.filter(r =>
+                    r['المقرر'] === code &&
+                    r['نوع الجدولة'] === scheduleType &&
+                    includedStatuses.includes(r['حالة تسجيل'] || 'غير محدد')
+                ).length;
+                totalCount += count;
+            });
+            selectedCourseTraineeCount = totalCount;
+
+            // Update step clickability based on new selection
+            updateStepClickability();
+        }
+
+        function toggleCourse(key, count) {
+            const idx = selectedCourses.indexOf(key);
+            if (idx === -1) {
+                selectedCourses.push(key);
+            } else {
+                selectedCourses.splice(idx, 1);
+            }
+            renderCourses();
+            updateSelectedCoursesChipBar();
+        }
+
+        function clearAllSelectedCourses() {
+            selectedCourses = [];
+            renderCourses();
+            updateSelectedCoursesChipBar();
+        }
+
+        function removeCourseFromSelection(key) {
+            selectedCourses = selectedCourses.filter(k => k !== key);
+            renderCourses();
+            updateSelectedCoursesChipBar();
+        }
+
+        function updateSelectedCoursesChipBar() {
+            const chipBar = document.getElementById('selectedCoursesChipBar');
+            const chipsContainer = document.getElementById('selectedCoursesChips');
+            const countSpan = document.getElementById('selectedCoursesCount');
+            const clearAllBtn = document.getElementById('clearAllCoursesBtn');
+
+            if (!chipBar || !chipsContainer) return;
+
+            if (selectedCourses.length === 0) {
+                chipBar.style.display = 'none';
+                return;
+            }
+
+            chipBar.style.display = 'block';
+            countSpan.textContent = selectedCourses.length;
+            clearAllBtn.style.display = selectedCourses.length > 1 ? 'inline-flex' : 'none';
+
+            chipsContainer.innerHTML = selectedCourses.map(key => {
+                const [code, scheduleType] = key.split('|');
+                const course = sf01Data.find(r => r['المقرر'] === code);
+                const name = course ? course['اسم المقرر'] : '';
+                const courseCount = sf01Data.filter(r =>
+                    r['المقرر'] === code &&
+                    r['نوع الجدولة'] === scheduleType &&
+                    includedStatuses.includes(r['حالة تسجيل'] || 'غير محدد')
+                ).length;
+                return `
+                    <span style="background:var(--accent-green); color:#fff; padding:4px 8px; border-radius:6px; font-size:12px; display:inline-flex; align-items:center; gap:6px;">
+                        ${code} (${courseCount})
+                        <span onclick="removeCourseFromSelection('${key}')" 
+                              style="cursor:pointer; background:rgba(255,255,255,0.2); padding:2px 4px; border-radius:4px; font-weight:700;">✕</span>
+                    </span>
+                `;
+            }).join('');
+
+            // Reinitialize Lucide icons
+            if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
         function selectCourse(code, count) {
             selectedCourse = code;
             selectedCourseTraineeCount = count;
             renderCourses();
-
-            // Show committee options
-            document.getElementById('committeeOptionsSection').style.display = 'block';
-            updateCommitteeCalc();
 
             // Populate status filter
             populateStatusFilter();
@@ -1773,12 +2154,22 @@
             const n = selectedCourseTraineeCount;
 
             if (committeeMode === 'rooms') {
-                const rooms = parseInt(document.getElementById('committeeCount').value) || 1;
+                let rooms = parseInt(document.getElementById('committeeCount').value) || 0;
+                // Enforce minimum of 1
+                if (rooms < 1) {
+                    rooms = 1;
+                    document.getElementById('committeeCount').value = 1;
+                }
                 const perRoom = Math.ceil(n / rooms);
                 document.getElementById('traineesPerRoomResult').textContent = `≈ ${perRoom} متدرب لكل لجنة`;
                 document.getElementById('roomsNeededResult').textContent = '';
             } else {
-                const perRoom = parseInt(document.getElementById('traineesPerRoom').value) || 30;
+                let perRoom = parseInt(document.getElementById('traineesPerRoom').value) || 0;
+                // Enforce minimum of 1
+                if (perRoom < 1) {
+                    perRoom = 1;
+                    document.getElementById('traineesPerRoom').value = 1;
+                }
                 const rooms = Math.ceil(n / perRoom);
                 document.getElementById('roomsNeededResult').textContent = `= ${rooms} لجنة مطلوبة`;
                 document.getElementById('traineesPerRoomResult').textContent = '';
@@ -1792,6 +2183,8 @@
                 const perRoom = parseInt(document.getElementById('traineesPerRoom').value) || 30;
                 committeeCount = Math.ceil(selectedCourseTraineeCount / perRoom);
             }
+            // Reset distribution for new committee count
+            committeeDistribution = [];
         }
 
         // Status Filter Functions
@@ -1959,8 +2352,67 @@
             sortOrder = document.querySelector('input[name="sortOrder"]:checked')?.value || 'traineeId';
         }
 
-        // Step 4: Room Distribution
+        // Step 4: Committee Count (NEW)
         function populateStep4() {
+            // Calculate total trainees for selected courses
+            let totalTrainees = 0;
+            selectedCourses.forEach(key => {
+                const [code, scheduleType] = key.split('|');
+                const count = sf01Data.filter(r =>
+                    r['المقرر'] === code &&
+                    r['نوع الجدولة'] === scheduleType &&
+                    includedStatuses.includes(r['حالة تسجيل'] || 'غير محدد')
+                ).length;
+                totalTrainees += count;
+            });
+            selectedCourseTraineeCount = totalTrainees;
+
+            // Show selected courses summary with trainee counts
+            const summaryEl = document.getElementById('selectedCoursesSummary');
+            const coursesList = selectedCourses.map(key => {
+                const [code, scheduleType] = key.split('|');
+                const course = sf01Data.find(r => r['المقرر'] === code);
+                const name = course ? course['اسم المقرر'] : '';
+                // Get count for this specific course
+                const courseCount = sf01Data.filter(r =>
+                    r['المقرر'] === code &&
+                    r['نوع الجدولة'] === scheduleType &&
+                    includedStatuses.includes(r['حالة تسجيل'] || 'غير محدد')
+                ).length;
+                const scheduleColor = getScheduleTypeColor(scheduleType);
+                return `
+                    <div style="background:var(--bg-header); border:1px solid var(--border-dark); padding:8px 12px; border-radius:8px; display:inline-flex; flex-direction:column; gap:4px;">
+                        <div style="font-weight:600; color:var(--text-light);">${code} - ${name}</div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="background:${scheduleColor}; color:#fff; padding:2px 8px; border-radius:4px; font-size:11px;">${scheduleType}</span>
+                            <span style="background:var(--accent-gold); color:#000; padding:2px 8px; border-radius:4px; font-size:12px; font-weight:700;">${courseCount} متدرب</span>
+                        </div>
+                    </div>`;
+            }).join('');
+
+            summaryEl.innerHTML = `
+                <div style="color:var(--text-light); margin-bottom:10px;">
+                    <strong>المقررات المختارة:</strong>
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:15px;">
+                    ${coursesList}
+                </div>
+                <div style="display:flex; justify-content:center; gap:20px; padding:15px; background:var(--bg-header); border-radius:10px;">
+                    <div style="text-align:center;">
+                        <div style="font-size:28px; font-weight:700; color:var(--accent-gold);">${totalTrainees}</div>
+                        <div style="font-size:12px; color:var(--text-muted);">إجمالي المتدربين</div>
+                    </div>
+                </div>
+            `;
+
+            updateCommitteeCalc();
+
+            // Reinitialize Lucide icons
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        // Step 5: Room Distribution (was Step 4)
+        function populateStep5() {
             roomNames = [];
             const container = document.getElementById('roomSelectionMode');
 
@@ -2053,6 +2505,7 @@
                 showToast(`تم الوصول للحد الأقصى (${committeeCount} قاعة)`, 'warning');
                 return;
             }
+            committeeDistribution = []; // Reset for new room configuration
             renderRoomGrid();
             updateDistributionPreview();
         }
@@ -2069,6 +2522,7 @@
             if (name && !roomNames.includes(name)) {
                 roomNames.push(name);
                 input.value = '';
+                committeeDistribution = []; // Reset for new room
                 renderRoomChips();
                 updateDistributionPreview();
             }
@@ -2076,6 +2530,7 @@
 
         function removeRoom(name) {
             roomNames = roomNames.filter(r => r !== name);
+            committeeDistribution = []; // Reset after removing room
             renderRoomChips();
             updateDistributionPreview();
         }
@@ -2089,56 +2544,237 @@
         }
 
         function updateDistributionPreview() {
-            // Filter by course AND included statuses (same as generateReports)
-            let trainees = sf01Data.filter(r =>
-                r['المقرر'] === selectedCourse &&
-                includedStatuses.includes(r['حالة تسجيل'] || 'غير محدد')
-            );
+            // Calculate total trainees for selected courses
+            let trainees = [];
+            selectedCourses.forEach(key => {
+                const [code, scheduleType] = key.split('|');
+                const courseTrainees = sf01Data.filter(r =>
+                    r['المقرر'] === code &&
+                    r['نوع الجدولة'] === scheduleType &&
+                    includedStatuses.includes(r['حالة تسجيل'] || 'غير محدد')
+                );
+                trainees = trainees.concat(courseTrainees);
+            });
 
-            // Fallback: if no trainees match filters, show all for course
+            // Fallback: if no trainees match filters, get all for selected courses
             if (trainees.length === 0) {
-                trainees = sf01Data.filter(r => r['المقرر'] === selectedCourse);
+                selectedCourses.forEach(key => {
+                    const [code, scheduleType] = key.split('|');
+                    const courseTrainees = sf01Data.filter(r =>
+                        r['المقرر'] === code &&
+                        r['نوع الجدولة'] === scheduleType
+                    );
+                    trainees = trainees.concat(courseTrainees);
+                });
             }
 
-            const n = trainees.length;
-            const rooms = roomNames.length || committeeCount;
+            totalTraineesCount = trainees.length;
 
+            // Initialize or update committee distribution
+            if (committeeDistribution.length === 0) {
+                initCommitteeDistribution();
+            }
+
+            renderCommitteeTable();
+        }
+
+        function initCommitteeDistribution() {
+            const rooms = roomNames.length || committeeCount;
+            const n = totalTraineesCount;
             const base = Math.floor(n / rooms);
             const extra = n % rooms;
 
-            trainees.sort((a, b) => (a['رقم المتدرب'] || '').localeCompare(b['رقم المتدرب'] || ''));
+            committeeDistribution = [];
+            for (let i = 0; i < rooms; i++) {
+                const count = base + (i < extra ? 1 : 0);
+                const name = roomNames[i] || `لجنة ${i + 1}`;
+                committeeDistribution.push({ name, count, locked: false });
+            }
+        }
 
-            let html = `<h3 style="margin-top:20px; color:var(--text-light);">معاينة التوزيع</h3>
-                <table class="distribution-table">
-                    <thead><tr><th>القاعة</th><th>عدد المتدربين</th></tr></thead>
+        function renderCommitteeTable() {
+            const currentTotal = committeeDistribution.reduce((sum, c) => sum + c.count, 0);
+            const isBalanced = currentTotal === totalTraineesCount;
+            const diff = totalTraineesCount - currentTotal;
+
+            let html = `
+                <h3 style="margin-top:20px; color:var(--text-light); display:flex; align-items:center; gap:8px;">
+                    <i data-lucide="settings-2" style="width:20px; height:20px;"></i> توزيع المتدربين على اللجان
+                </h3>
+                <div class="committee-dist-toolbar">
+                    <button onclick="resetDistribution()" title="إعادة التوزيع المتساوي">
+                        <i data-lucide="refresh-ccw" style="width:16px; height:16px;"></i> إعادة ضبط
+                    </button>
+                    <button onclick="autoBalance()" title="موازنة تلقائية">
+                        <i data-lucide="scale" style="width:16px; height:16px;"></i> تسوية تلقائية
+                    </button>
+                </div>
+                <table class="committee-dist-table">
+                    <thead>
+                        <tr>
+                            <th style="width:40%;">اللجنة</th>
+                            <th style="width:25%;">عدد المتدربين</th>
+                            <th style="width:15%;">قفل</th>
+                            <th style="width:20%;">حذف</th>
+                        </tr>
+                    </thead>
                     <tbody>`;
 
-            let start = 0;
-            for (let i = 0; i < rooms; i++) {
-                const size = base + (i < extra ? 1 : 0);
-                const roomName = roomNames[i] || `لجنة ${i + 1}`;
-                const firstId = trainees[start] ? trainees[start]['رقم المتدرب'] : '-';
-                const lastId = trainees[start + size - 1] ? trainees[start + size - 1]['رقم المتدرب'] : '-';
-                html += `<tr><td>${roomName}</td><td>${size}</td></tr>`;
-                start += size;
+            committeeDistribution.forEach((c, i) => {
+                const isWarning = c.count === 0;
+                const rowClass = isWarning ? 'warning-row' : '';
+                const lockIcon = c.locked ? 'lock' : 'lock-open';
+                const lockClass = c.locked ? 'locked' : '';
+
+                html += `
+                    <tr class="${rowClass}">
+                        <td>${c.name}${isWarning ? ' ⚠️' : ''}</td>
+                        <td>
+                            <input type="number" class="count-input" value="${c.count}" min="0" 
+                                   onchange="updateCommitteeCount(${i}, parseInt(this.value) || 0)">
+                        </td>
+                        <td>
+                            <button class="action-btn lock-btn ${lockClass}" onclick="toggleCommitteeLock(${i})" 
+                                    title="${c.locked ? 'فتح القفل' : 'قفل'}">
+                                <i data-lucide="${lockIcon}" style="width:18px; height:18px;"></i>
+                            </button>
+                        </td>
+                        <td>
+                            <button class="action-btn delete-btn" onclick="deleteCommittee(${i})" title="حذف اللجنة">
+                                <i data-lucide="x" style="width:18px; height:18px;"></i>
+                            </button>
+                        </td>
+                    </tr>`;
+            });
+
+            html += `</tbody></table>`;
+
+            // Total bar
+            const barClass = isBalanced ? 'balanced' : 'unbalanced';
+            const statusIcon = isBalanced ? 'check-circle' : 'alert-circle';
+            const diffText = diff > 0 ? `(ناقص ${diff})` : (diff < 0 ? `(زائد ${Math.abs(diff)})` : '');
+
+            html += `
+                <div class="total-bar ${barClass}">
+                    <i data-lucide="${statusIcon}" style="width:20px; height:20px;"></i>
+                    <span>المجموع: ${currentTotal} / ${totalTraineesCount} ${diffText}</span>
+                </div>`;
+
+            document.getElementById('distributionPreview').innerHTML = html;
+
+            // Reinitialize Lucide icons
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        function updateCommitteeCount(index, newCount) {
+            if (index >= 0 && index < committeeDistribution.length) {
+                committeeDistribution[index].count = Math.max(0, newCount);
+                renderCommitteeTable();
+            }
+        }
+
+        function toggleCommitteeLock(index) {
+            if (index >= 0 && index < committeeDistribution.length) {
+                committeeDistribution[index].locked = !committeeDistribution[index].locked;
+                renderCommitteeTable();
+            }
+        }
+
+        function deleteCommittee(index) {
+            if (committeeDistribution.length <= 1) {
+                showToast('لا يمكن حذف اللجنة الوحيدة', 'error');
+                return;
             }
 
-            html += '</tbody></table>';
-            document.getElementById('distributionPreview').innerHTML = html;
+            const deletedCount = committeeDistribution[index].count;
+            committeeDistribution.splice(index, 1);
+
+            // Distribute deleted count to unlocked committees
+            if (deletedCount > 0) {
+                const unlocked = committeeDistribution.filter(c => !c.locked);
+                if (unlocked.length > 0) {
+                    const perCommittee = Math.floor(deletedCount / unlocked.length);
+                    let remainder = deletedCount % unlocked.length;
+
+                    unlocked.forEach(c => {
+                        c.count += perCommittee;
+                        if (remainder > 0) {
+                            c.count++;
+                            remainder--;
+                        }
+                    });
+                }
+            }
+
+            // Update committeeCount
+            committeeCount = committeeDistribution.length;
+            renderCommitteeTable();
+        }
+
+        function autoBalance() {
+            const currentTotal = committeeDistribution.reduce((sum, c) => sum + c.count, 0);
+            const diff = totalTraineesCount - currentTotal;
+
+            if (diff === 0) {
+                showToast('التوزيع متوازن بالفعل', 'info');
+                return;
+            }
+
+            const unlocked = committeeDistribution.filter(c => !c.locked);
+            if (unlocked.length === 0) {
+                showToast('جميع اللجان مقفلة - افتح واحدة على الأقل للتسوية', 'warning');
+                return;
+            }
+
+            const perCommittee = Math.floor(Math.abs(diff) / unlocked.length);
+            let remainder = Math.abs(diff) % unlocked.length;
+            const sign = diff > 0 ? 1 : -1;
+
+            unlocked.forEach(c => {
+                c.count += sign * perCommittee;
+                if (remainder > 0) {
+                    c.count += sign;
+                    remainder--;
+                }
+                // Ensure non-negative
+                c.count = Math.max(0, c.count);
+            });
+
+            renderCommitteeTable();
+            showToast('تم تسوية التوزيع تلقائياً', 'success');
+        }
+
+        function resetDistribution() {
+            initCommitteeDistribution();
+            renderCommitteeTable();
+            showToast('تم إعادة ضبط التوزيع المتساوي', 'success');
         }
 
         // Step 5: Generate Reports
         function generateReports() {
             try {
-                // Filter by course and included statuses
-                let trainees = sf01Data.filter(r =>
-                    r['المقرر'] === selectedCourse &&
-                    includedStatuses.includes(r['حالة تسجيل'] || 'غير محدد')
-                );
+                // Filter by selected courses and included statuses
+                let trainees = [];
+                selectedCourses.forEach(key => {
+                    const [code, scheduleType] = key.split('|');
+                    const courseTrainees = sf01Data.filter(r =>
+                        r['المقرر'] === code &&
+                        r['نوع الجدولة'] === scheduleType &&
+                        includedStatuses.includes(r['حالة تسجيل'] || 'غير محدد')
+                    );
+                    trainees = trainees.concat(courseTrainees);
+                });
 
-                // Fallback: if no trainees match, use all trainees for this course
+                // Fallback: if no trainees match, use all trainees for selected courses
                 if (trainees.length === 0) {
-                    trainees = sf01Data.filter(r => r['المقرر'] === selectedCourse);
+                    selectedCourses.forEach(key => {
+                        const [code, scheduleType] = key.split('|');
+                        const courseTrainees = sf01Data.filter(r =>
+                            r['المقرر'] === code &&
+                            r['نوع الجدولة'] === scheduleType
+                        );
+                        trainees = trainees.concat(courseTrainees);
+                    });
                 }
 
                 // Apply sort order
@@ -2146,26 +2782,40 @@
 
                 if (currentSortOrder === 'traineeId') {
                     trainees.sort((a, b) => (a['رقم المتدرب'] || '').localeCompare(b['رقم المتدرب'] || ''));
+                } else if (currentSortOrder === 'referenceNumber') {
+                    trainees.sort((a, b) => (a['الرقم المرجعي'] || '').localeCompare(b['الرقم المرجعي'] || ''));
                 } else if (currentSortOrder === 'instructor') {
                     trainees.sort((a, b) => (a['المدرب'] || '').localeCompare(b['المدرب'] || ''));
                 } else if (currentSortOrder === 'traineeName') {
                     trainees.sort((a, b) => (a['إسم المتدرب'] || a['اسم المتدرب'] || '').localeCompare(b['إسم المتدرب'] || b['اسم المتدرب'] || ''));
                 }
 
-                const courseName = trainees[0] ? trainees[0]['اسم المقرر'] : selectedCourse;
+                // Get course names for header
+                const courseNames = selectedCourses.map(key => {
+                    const [code] = key.split('|');
+                    const course = sf01Data.find(r => r['المقرر'] === code);
+                    return course ? `${code} - ${course['اسم المقرر']}` : code;
+                }).join(' | ');
+
                 const collegeName = trainees[0] ? (trainees[0]['الوحدة'] || '') : '';
                 const semester = trainees[0] ? (trainees[0]['الفصل التدريبي'] || '') : '';
 
-                const rooms = roomNames.length || committeeCount;
-                const base = Math.floor(trainees.length / rooms);
-                const extra = trainees.length % rooms;
+                // Use committeeDistribution for customized distribution
+                // Filter out committees with 0 trainees (cancelled)
+                const activeCommittees = committeeDistribution.filter(c => c.count > 0);
+
+                if (activeCommittees.length === 0) {
+                    showToast('جميع اللجان فارغة. أعد توزيع المتدربين.', 'error');
+                    return;
+                }
 
                 let html = '';
                 let start = 0;
 
-                for (let i = 0; i < rooms; i++) {
-                    const size = base + (i < extra ? 1 : 0);
-                    const roomName = roomNames[i] || `لجنة ${i + 1}`;
+                for (let i = 0; i < activeCommittees.length; i++) {
+                    const committee = activeCommittees[i];
+                    const size = committee.count;
+                    const roomName = committee.name;
                     const group = trainees.slice(start, start + size);
                     const firstId = group[0] ? group[0]['رقم المتدرب'] : '-';
                     const lastId = group[group.length - 1] ? group[group.length - 1]['رقم المتدرب'] : '-';
@@ -2175,6 +2825,12 @@
                     if (currentSortOrder === 'traineeId') {
                         rangeLabel = 'نطاق الأرقام';
                         rangeValue = `${firstId} - ${lastId}`;
+                    } else if (currentSortOrder === 'referenceNumber') {
+                        const firstRef = group[0] ? group[0]['الرقم المرجعي'] : '-';
+                        const lastRef = group[group.length - 1] ? group[group.length - 1]['الرقم المرجعي'] : '-';
+                        const uniqueRefs = [...new Set(group.map(t => t['الرقم المرجعي'] || '-'))];
+                        rangeLabel = 'الأرقام المرجعية';
+                        rangeValue = uniqueRefs.length <= 3 ? uniqueRefs.join(' / ') : `${firstRef} - ${lastRef}`;
                     } else if (currentSortOrder === 'instructor') {
                         const instructors = [...new Set(group.map(t => t['المدرب'] || 'غير محدد'))];
                         rangeLabel = 'المدربون';
@@ -2202,7 +2858,7 @@
                             <table class="report-table">
                                 <thead>
                                     <tr class="header-row">
-                                        <th colspan="5" style="background:#fff; border:none; padding:0;">
+                                        <th colspan="7" style="background:#fff; border:none; padding:0;">
                                             <div class="report-header">
                                                 <div class="header-top-row">
                                                     <span class="header-right"><strong>الفصل التدريبي:</strong> ${semester}</span>
@@ -2211,14 +2867,14 @@
                                                 </div>
                                                 <h2>لجنة / قاعة: ${roomName}${pageLabel}</h2>
                                                 <div class="info">
-                                                    <span><strong>المقرر:</strong> ${selectedCourse} - ${courseName}</span>
+                                                    <span><strong>المقررات:</strong> ${courseNames}</span>
                                                     <span><strong>${rangeLabel}:</strong> ${rangeValue}</span>
                                                     <span><strong>العدد:</strong> ${group.length} متدرب</span>
                                                 </div>
                                             </div>
                                         </th>
                                     </tr>
-                                    <tr><th>#</th><th>رقم المتدرب</th><th>اسم المتدرب</th><th>رقم الشعبة</th><th>المدرب</th></tr>
+                                    <tr><th>#</th><th>رقم المتدرب</th><th>اسم المتدرب</th><th>اسم المقرر</th><th>الرقم المرجعي</th><th>المدرب</th><th>توقيع المتدرب</th></tr>
                                 </thead>
                                 <tbody>
                                     ${pageGroup.map((t, idx) => `
@@ -2226,8 +2882,10 @@
                                             <td>${pageStart + idx + 1}</td>
                                             <td>${t['رقم المتدرب'] || ''}</td>
                                             <td>${t['إسم المتدرب'] || t['اسم المتدرب'] || ''}</td>
+                                            <td>${t['اسم المقرر'] || ''}</td>
                                             <td>${t['الرقم المرجعي'] || ''}</td>
                                             <td>${t['المدرب'] || ''}</td>
+                                            <td></td>
                                         </tr>
                                     `).join('')}
                                 </tbody>
@@ -2355,9 +3013,15 @@
 
             showToast('جاري تحميل مكتبة Excel...', 'info');
 
-            // Get course info
-            const courseData = sf01Data.find(r => r['المقرر'] === selectedCourse);
-            const courseName = courseData?.['اسم المقرر'] || selectedCourse;
+            // Get course info from selected courses
+            const courseNames = selectedCourses.map(key => {
+                const [code] = key.split('|');
+                const course = sf01Data.find(r => r['المقرر'] === code);
+                return course ? `${code} - ${course['اسم المقرر']}` : code;
+            }).join(' | ');
+
+            const firstCourse = selectedCourses.length > 0 ? selectedCourses[0].split('|')[0] : '';
+            const courseData = sf01Data.find(r => r['المقرر'] === firstCourse);
             const collegeName = courseData?.['الوحدة'] || '';
             const semester = courseData?.['الفصل التدريبي'] || '';
             const totalTrainees = document.querySelectorAll('.report-page .report-table tbody tr').length;
@@ -2367,23 +3031,24 @@
             tempTable.id = 'tempExportTable';
             tempTable.style.display = 'none';
 
-            // Add info header rows first
+            // Add info header rows first (8 columns now)
             const thead = document.createElement('thead');
             thead.innerHTML = `
-                <tr><th colspan="6">توزيع المتدربين على لجان الاختبارات</th></tr>
-                <tr><td>رمز المقرر:</td><td colspan="5">${selectedCourse}</td></tr>
-                <tr><td>اسم المقرر:</td><td colspan="5">${courseName}</td></tr>
-                <tr><td>الكلية / الوحدة:</td><td colspan="5">${collegeName}</td></tr>
-                <tr><td>الفصل التدريبي:</td><td colspan="5">${semester}</td></tr>
-                <tr><td>إجمالي المتدربين:</td><td colspan="5">${totalTrainees}</td></tr>
-                <tr><td colspan="6"></td></tr>
+                <tr><th colspan="8">توزيع المتدربين على لجان الاختبارات</th></tr>
+                <tr><td>المقررات:</td><td colspan="7">${courseNames}</td></tr>
+                <tr><td>الكلية / الوحدة:</td><td colspan="7">${collegeName}</td></tr>
+                <tr><td>الفصل التدريبي:</td><td colspan="7">${semester}</td></tr>
+                <tr><td>إجمالي المتدربين:</td><td colspan="7">${totalTrainees}</td></tr>
+                <tr><td colspan="8"></td></tr>
                 <tr>
                     <th>اللجنة</th>
                     <th>#</th>
                     <th>رقم المتدرب</th>
                     <th>اسم المتدرب</th>
-                    <th>رقم الشعبة</th>
+                    <th>اسم المقرر</th>
+                    <th>الرقم المرجعي</th>
                     <th>المدرب</th>
+                    <th>توقيع المتدرب</th>
                 </tr>
             `;
             tempTable.appendChild(thead);
@@ -2393,12 +3058,14 @@
             let rowCount = 0;
 
             reportPages.forEach((page, pageIdx) => {
-                const roomName = page.querySelector('.report-header h2')?.textContent?.replace('لجنة / قاعة:', '').trim() || `لجنة ${pageIdx + 1}`;
+                // Extract room name and remove page suffix like "(صفحة 1 من 2)"
+                let roomName = page.querySelector('.report-header h2')?.textContent?.replace('لجنة / قاعة:', '').trim() || `لجنة ${pageIdx + 1}`;
+                roomName = roomName.replace(/\s*\(صفحة\s*\d+\s*من\s*\d+\)/, '').trim();
                 const rows = page.querySelectorAll('.report-table tbody tr');
 
                 rows.forEach(row => {
                     const cells = row.querySelectorAll('td');
-                    if (cells.length >= 5) {
+                    if (cells.length >= 7) {
                         const newRow = document.createElement('tr');
                         newRow.innerHTML = `
                             <td>${roomName}</td>
@@ -2407,6 +3074,8 @@
                             <td>${cells[2]?.textContent || ''}</td>
                             <td>${cells[3]?.textContent || ''}</td>
                             <td>${cells[4]?.textContent || ''}</td>
+                            <td>${cells[5]?.textContent || ''}</td>
+                            <td> </td>
                         `;
                         tbody.appendChild(newRow);
                         rowCount++;
@@ -2427,98 +3096,193 @@
                 const script = document.createElement('script');
                 script.src = 'https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js';
                 script.onload = () => {
-                    generateExcelFromTable(tempTable, courseName);
+                    generateExcelFromTable(tempTable, courseNames);
                 };
                 script.onerror = () => {
-                    showToast('❌ فشل تحميل مكتبة Excel. تحقق من اتصال الإنترنت.', 'error');
+                    showToast('فشل تحميل مكتبة Excel. تحقق من اتصال الإنترنت.', 'error');
                     document.body.removeChild(tempTable);
                 };
                 document.head.appendChild(script);
             } else {
-                generateExcelFromTable(tempTable, courseName);
+                generateExcelFromTable(tempTable, courseNames);
             }
         }
 
-        function generateExcelFromTable(table, courseName) {
+        function generateExcelFromTable(table, courseNames) {
             try {
-                const ws = XLSX.utils.table_to_sheet(table, { raw: true });
-                const range = XLSX.utils.decode_range(ws['!ref']);
+                // Group data by committee
+                const committees = new Map(); // Map: committeeName -> [rows]
+                const headerRows = []; // First 7 rows (title, info, headers)
 
-                const baseBorder = {
+                const allRows = table.querySelectorAll('tr');
+                allRows.forEach((row, rowIndex) => {
+                    const cells = row.querySelectorAll('th, td');
+                    const rowData = [];
+                    for (let i = 0; i < 8; i++) {
+                        const cellText = cells[i]?.textContent?.trim() || ' ';
+                        rowData.push(cellText === '' ? ' ' : cellText);
+                    }
+
+                    if (rowIndex <= 6) {
+                        // Header rows (title, info, column headers)
+                        headerRows.push(rowData);
+                    } else {
+                        // Data row - group by committee (column 0)
+                        const committeeName = rowData[0];
+                        if (!committees.has(committeeName)) {
+                            committees.set(committeeName, []);
+                        }
+                        committees.get(committeeName).push(rowData);
+                    }
+                });
+
+                // Define styles
+                const thinBorder = {
                     top: { style: 'thin', color: { rgb: '333333' } },
                     bottom: { style: 'thin', color: { rgb: '333333' } },
                     left: { style: 'thin', color: { rgb: '333333' } },
                     right: { style: 'thin', color: { rgb: '333333' } }
                 };
 
-                const headerRowIndex = 7; // Row 7 is the column headers (0-indexed)
+                const titleStyle = {
+                    fill: { fgColor: { rgb: 'D4A017' } },
+                    font: { color: { rgb: 'FFFFFF' }, bold: true, sz: 14 },
+                    alignment: { horizontal: 'center', vertical: 'center' },
+                    border: thinBorder
+                };
 
-                // Style cells
-                for (let R = range.s.r; R <= range.e.r; R++) {
-                    for (let C = range.s.c; C <= range.e.c; C++) {
-                        const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
-                        if (!ws[cellRef]) continue;
+                const infoStyle = (isLabel) => ({
+                    fill: { fgColor: { rgb: isLabel ? 'E5E7EB' : 'FFFFFF' } },
+                    font: { sz: 11, bold: isLabel },
+                    alignment: { horizontal: 'right', vertical: 'center' },
+                    border: thinBorder
+                });
 
-                        if (R === 0) {
-                            // Title row - Gold background
-                            ws[cellRef].s = {
-                                fill: { fgColor: { rgb: 'D4A017' } },
-                                font: { color: { rgb: 'FFFFFF' }, bold: true, sz: 14 },
-                                alignment: { horizontal: 'center', vertical: 'center' },
-                                border: baseBorder
-                            };
-                        } else if (R >= 1 && R <= 5) {
-                            // Info rows - Light gray background
-                            ws[cellRef].s = {
-                                fill: { fgColor: { rgb: C === 0 ? 'E5E7EB' : 'FFFFFF' } },
-                                font: { sz: 11, bold: C === 0 },
-                                alignment: { horizontal: 'right', vertical: 'center' },
-                                border: baseBorder
-                            };
-                        } else if (R === 6) {
-                            // Empty separator row
-                            ws[cellRef].s = {
-                                fill: { fgColor: { rgb: 'FFFFFF' } },
-                                border: {}
-                            };
-                        } else if (R === headerRowIndex) {
-                            // Column headers - Dark blue
-                            ws[cellRef].s = {
-                                fill: { fgColor: { rgb: '1E3A5F' } },
-                                font: { color: { rgb: 'FFFFFF' }, bold: true, sz: 11 },
-                                alignment: { horizontal: 'center', vertical: 'center' },
-                                border: baseBorder
-                            };
-                        } else {
-                            // Data rows - Alternating colors
-                            ws[cellRef].s = {
-                                fill: { fgColor: { rgb: (R - headerRowIndex) % 2 === 0 ? 'F9FAFB' : 'FFFFFF' } },
-                                font: { sz: 10 },
-                                alignment: { horizontal: 'center', vertical: 'center' },
-                                border: baseBorder
-                            };
-                        }
-                    }
-                }
+                const headerStyle = {
+                    fill: { fgColor: { rgb: '1E3A5F' } },
+                    font: { color: { rgb: 'FFFFFF' }, bold: true, sz: 11 },
+                    alignment: { horizontal: 'center', vertical: 'center' },
+                    border: thinBorder
+                };
 
-                // Set column widths
-                ws['!cols'] = [
-                    { wch: 18 }, // اللجنة / العمود الأول
-                    { wch: 5 },  // #
-                    { wch: 12 }, // رقم المتدرب
-                    { wch: 30 }, // اسم المتدرب
-                    { wch: 10 }, // رقم الشعبة
-                    { wch: 28 }  // المدرب
-                ];
+                const dataStyle = (isEven) => ({
+                    fill: { fgColor: { rgb: isEven ? 'F9FAFB' : 'FFFFFF' } },
+                    font: { sz: 10 },
+                    alignment: { horizontal: 'center', vertical: 'center' },
+                    border: thinBorder
+                });
 
+                // Create workbook
                 const wb = XLSX.utils.book_new();
                 wb.Workbook = { Views: [{ RTL: true }] };
-                XLSX.utils.book_append_sheet(wb, ws, 'التوزيع');
 
-                const fileName = `توزيع_${selectedCourse}_${courseName}.xlsx`;
-                XLSX.writeFile(wb, fileName);
+                // Create a sheet for each committee
+                let sheetIndex = 0;
+                committees.forEach((rows, committeeName) => {
+                    sheetIndex++;
 
-                showToast('تم تصدير ملف Excel بنجاح ✅', 'success');
+                    // Build sheet data: headers + committee rows
+                    const sheetData = [...headerRows, ...rows];
+
+                    // Add signature section at end
+                    const dataEndRow = sheetData.length;
+
+                    // 2 empty rows
+                    sheetData.push(['', '', '', '', '', '', '', '']);
+                    sheetData.push(['', '', '', '', '', '', '', '']);
+
+                    // 1 empty row (no borders - spacer)
+                    sheetData.push(['', '', '', '', '', '', '', '']);
+
+                    // Signature labels row (merged: cols 0-2 (3), 3-4 (2), 5-7 (3))
+                    sheetData.push(['المراقب الأول:', '', '', 'المراقب الثاني:', '', 'رئيس اللجنة:', '', '']);
+
+                    // Signature row (التوقيع) with same structure
+                    sheetData.push(['التوقيع:', '', '', 'التوقيع:', '', 'التوقيع:', '', '']);
+
+                    const ws = XLSX.utils.aoa_to_sheet(sheetData);
+
+                    // Signature row styles
+                    const signatureLabelStyle = {
+                        font: { bold: true, sz: 11 },
+                        alignment: { horizontal: 'right', vertical: 'center' },
+                        border: thinBorder
+                    };
+
+                    const signatureEmptyStyle = {
+                        border: thinBorder,
+                        alignment: { horizontal: 'right', vertical: 'center' }
+                    };
+
+                    const noBorderStyle = {
+                        fill: { fgColor: { rgb: 'FFFFFF' } }
+                    };
+
+                    // Apply styles
+                    for (let R = 0; R < sheetData.length; R++) {
+                        for (let C = 0; C < 8; C++) {
+                            const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
+                            if (!ws[cellRef]) ws[cellRef] = { v: ' ', t: 's' };
+
+                            if (R === 0) {
+                                ws[cellRef].s = titleStyle;
+                            } else if (R >= 1 && R <= 4) {
+                                ws[cellRef].s = infoStyle(C === 0);
+                            } else if (R === 5) {
+                                ws[cellRef].s = { fill: { fgColor: { rgb: 'FFFFFF' } } };
+                            } else if (R === 6) {
+                                ws[cellRef].s = headerStyle;
+                            } else if (R < dataEndRow) {
+                                ws[cellRef].s = dataStyle((R - 6) % 2 === 0);
+                            } else if (R === dataEndRow + 2) {
+                                // Spacer row - no borders
+                                ws[cellRef].s = noBorderStyle;
+                            } else if (R === dataEndRow + 3) {
+                                // Signature labels
+                                ws[cellRef].s = signatureLabelStyle;
+                            } else if (R === dataEndRow + 4) {
+                                // Empty signature row
+                                ws[cellRef].s = signatureEmptyStyle;
+                            }
+                        }
+                    }
+
+                    // Column widths
+                    ws['!cols'] = [
+                        { wch: 18 }, { wch: 5 }, { wch: 12 }, { wch: 30 },
+                        { wch: 20 }, { wch: 10 }, { wch: 28 }, { wch: 15 }
+                    ];
+
+                    // Merge header cells + signature cells
+                    ws['!merges'] = [
+                        { s: { r: 0, c: 0 }, e: { r: 0, c: 7 } },
+                        { s: { r: 1, c: 1 }, e: { r: 1, c: 7 } },
+                        { s: { r: 2, c: 1 }, e: { r: 2, c: 7 } },
+                        { s: { r: 3, c: 1 }, e: { r: 3, c: 7 } },
+                        { s: { r: 4, c: 1 }, e: { r: 4, c: 7 } },
+                        { s: { r: 5, c: 0 }, e: { r: 5, c: 7 } },
+                        // Signature label merges (3-2-3 columns)
+                        { s: { r: dataEndRow + 3, c: 0 }, e: { r: dataEndRow + 3, c: 2 } },  // المراقب الأول (3 cols)
+                        { s: { r: dataEndRow + 3, c: 3 }, e: { r: dataEndRow + 3, c: 4 } },  // المراقب الثاني (2 cols)
+                        { s: { r: dataEndRow + 3, c: 5 }, e: { r: dataEndRow + 3, c: 7 } },  // رئيس اللجنة (3 cols)
+                        // Signature row merges (التوقيع) - same structure
+                        { s: { r: dataEndRow + 4, c: 0 }, e: { r: dataEndRow + 4, c: 2 } },
+                        { s: { r: dataEndRow + 4, c: 3 }, e: { r: dataEndRow + 4, c: 4 } },
+                        { s: { r: dataEndRow + 4, c: 5 }, e: { r: dataEndRow + 4, c: 7 } }
+                    ];
+
+                    // Sheet name (max 31 chars, clean invalid chars)
+                    let sheetName = committeeName.substring(0, 28).replace(/[\\/*?:\[\]]/g, '');
+                    if (sheetName.trim() === '') sheetName = `لجنة ${sheetIndex}`;
+
+                    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+                });
+
+                // Export file
+                const fileNameBase = courseNames.length > 50 ? 'توزيع_المتدربين' : `توزيع_${courseNames.replace(/[|\/\\:*?"<>]/g, '_').substring(0, 50)}`;
+                XLSX.writeFile(wb, `${fileNameBase}.xlsx`);
+
+                showToast(`تم تصدير ${committees.size} لجنة في ملف Excel`, 'success');
             } catch (err) {
                 console.error('Excel export error:', err);
                 showToast('حدث خطأ في التصدير: ' + err.message, 'error');
@@ -2534,8 +3298,15 @@
             if (e.ctrlKey && e.key === 'p') { e.preventDefault(); window.print(); }
         });
 
-        // Initialize Lucide icons
-        lucide.createIcons();
+        // Initialize Lucide icons after DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+        });
+
+        // Also try immediate call in case DOMContentLoaded already fired
+        if (document.readyState !== 'loading') {
+            lucide.createIcons();
+        }
     </script>
 </body>
 
