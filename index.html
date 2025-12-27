@@ -10,6 +10,10 @@
     <link rel="stylesheet" href="shared/css/main.css">
     <!-- Lucide Icons - Outline/Line Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js for Distribution Visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script
+        src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
     <style>
         /* Wizard Styles */
         .wizard-container {
@@ -442,8 +446,6 @@
         }
 
         .course-list {
-            max-height: 300px;
-            overflow-y: auto;
             border: 1px solid var(--border-dark);
             border-radius: 10px;
         }
@@ -626,6 +628,158 @@
         .room-chip .remove {
             cursor: pointer;
             color: var(--accent-red);
+        }
+
+        /* Building Cards */
+        .buildings-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .building-card {
+            padding: 12px 16px;
+            background: var(--bg-card);
+            border: 2px solid var(--border-dark);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            min-width: 120px;
+        }
+
+        .building-card:hover {
+            border-color: var(--accent-gold);
+        }
+
+        .building-card.selected {
+            border-width: 2px;
+        }
+
+        .building-card .name {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-light);
+        }
+
+        .building-card .count {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* Selected Rooms List (Sortable) */
+        .selected-rooms-container {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        .rooms-list-box {
+            flex: 1;
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid var(--border-dark);
+        }
+
+        .rooms-list-box h4 {
+            color: var(--text-light);
+            margin-bottom: 10px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sortable-rooms {
+            min-height: 100px;
+            background: var(--bg-header);
+            border-radius: 8px;
+            padding: 8px;
+        }
+
+        .sortable-room-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            background: var(--bg-card);
+            border-radius: 8px;
+            margin-bottom: 6px;
+            cursor: grab;
+            transition: all 0.2s;
+            border-right: 4px solid;
+        }
+
+        .sortable-room-item:hover {
+            transform: translateX(-3px);
+        }
+
+        .sortable-room-item.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+
+        .sortable-room-item .drag-handle {
+            color: var(--text-muted);
+            cursor: grab;
+        }
+
+        .sortable-room-item .room-name {
+            flex: 1;
+            font-size: 13px;
+        }
+
+        .sortable-room-item .building-tag {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: white;
+        }
+
+        .sortable-room-item .remove-btn {
+            background: none;
+            border: none;
+            color: var(--accent-red);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+        }
+
+        .sortable-room-item .remove-btn:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        /* Committee without room */
+        .committee-pending {
+            background: rgba(245, 158, 11, 0.15) !important;
+            border-right: 3px solid #f59e0b !important;
+        }
+
+
+
+        /* Drag hint */
+        .drag-hint {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 11px;
+            padding: 8px;
+            background: var(--bg-header);
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+
+        /* Add Committee Button */
+        .add-committee-btn:hover {
+            background: rgba(251, 191, 36, 0.15) !important;
+            border-color: var(--accent-gold) !important;
+            transform: scale(1.02);
+        }
+
+        .add-committee-row {
+            background: transparent !important;
         }
 
         /* Distribution Preview */
@@ -838,11 +992,158 @@
             border: 1px solid #333;
             padding: 8px;
             text-align: center;
+            font-size: 10px;
         }
 
         .report-table th {
             background: #f0f0f0;
         }
+
+        /* Loading Spinner */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--border-dark);
+            border-top: 4px solid var(--accent-gold);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            color: var(--text-light);
+            font-size: 14px;
+        }
+
+        /* Smooth Step Transitions */
+        .step-content {
+            opacity: 0;
+            transform: translateX(20px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .step-content.active {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        /* Tooltip Enhancement */
+        .step[title] {
+            position: relative;
+        }
+
+        .step[title]:hover::after {
+            content: attr(title);
+            position: absolute;
+            bottom: -35px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-card);
+            color: var(--text-light);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            white-space: nowrap;
+            z-index: 100;
+            border: 1px solid var(--border-dark);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Responsive Design for Tablets */
+        @media (max-width: 1024px) {
+            .steps-bar {
+                flex-wrap: wrap;
+                gap: 8px;
+                padding: 15px;
+            }
+
+            .step {
+                flex: 1 1 auto;
+                min-width: 80px;
+            }
+
+            .step-label {
+                font-size: 10px;
+            }
+
+            .wizard-content {
+                padding: 15px;
+            }
+
+            .upload-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .committee-options {
+                flex-direction: column;
+            }
+
+            .committee-option {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .top-section {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .step-number {
+                width: 28px;
+                height: 28px;
+                font-size: 12px;
+            }
+
+            .step-label {
+                display: none;
+            }
+
+            .header-controls {
+                justify-content: center;
+            }
+
+            .preview-table-wrapper {
+                overflow-x: auto;
+            }
+        }
+
+        /* Keyboard Focus Indicators */
+        .step:focus {
+            outline: 2px solid var(--accent-gold);
+            outline-offset: 2px;
+        }
+
+        .nav-btn:focus,
+        .form-input:focus {
+            outline: 2px solid var(--accent-gold);
+            outline-offset: 2px;
+        }
+
 
         @media print {
             @page {
@@ -862,6 +1163,37 @@
                 background: #fff !important;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
+            }
+
+            /* Critical for fixed footer: Remove stacking contexts from outer containers only */
+            body,
+            .main-content-wrapper,
+            .wizard-container,
+            .wizard-content {
+                position: static !important;
+                overflow: visible !important;
+                transform: none !important;
+                filter: none !important;
+                perspective: none !important;
+                contain: none !important;
+            }
+
+            /* Table footer support */
+            table {
+                page-break-inside: auto;
+            }
+
+            tr {
+                page-break-inside: avoid;
+                page-break-after: auto;
+            }
+
+            thead {
+                display: table-header-group;
+            }
+
+            tfoot {
+                display: table-footer-group;
             }
 
             .wizard-container {
@@ -1159,6 +1491,75 @@
             background: rgba(239, 68, 68, 0.15);
             color: #ef4444;
         }
+
+        /* Print styles - Fixed column widths */
+        @media print {
+            .report-table {
+                table-layout: fixed !important;
+                width: 100% !important;
+            }
+
+            .report-table th,
+            .report-table td {
+                word-wrap: break-word;
+                overflow: hidden;
+                font-size: 12px !important;
+                padding: 4px;
+                padding: 4px;
+                height: var(--print-row-height, 45px) !important;
+                /* Fixed height for 2 rows */
+                white-space: normal !important;
+                /* Allow wrapping */
+                overflow: hidden !important;
+                /* Hide overflow */
+                text-overflow: clip;
+                vertical-align: middle;
+                line-height: 1.2 !important;
+            }
+
+            /* Fixed column widths for print - 7 columns total */
+            /* #1: م (تسلسلي - صغير جداً) */
+            .report-table th:nth-child(1),
+            .report-table td:nth-child(1) {
+                width: 4% !important;
+            }
+
+            /* #2: رقم المتدرب (10 خانات) */
+            .report-table th:nth-child(2),
+            .report-table td:nth-child(2) {
+                width: 11% !important;
+            }
+
+            /* #3: اسم المتدرب (طويل) */
+            .report-table th:nth-child(3),
+            .report-table td:nth-child(3) {
+                width: 22% !important;
+            }
+
+            /* #4: اسم المقرر (طويل) */
+            .report-table th:nth-child(4),
+            .report-table td:nth-child(4) {
+                width: 18% !important;
+            }
+
+            /* #5: الرقم المرجعي (7 خانات) */
+            .report-table th:nth-child(5),
+            .report-table td:nth-child(5) {
+                width: 9% !important;
+            }
+
+            /* #6: المدرب (طويل) */
+            .report-table th:nth-child(6),
+            .report-table td:nth-child(6) {
+                width: 20% !important;
+            }
+
+            /* #7: توقيع المتدرب (متوسط) */
+            .report-table th:nth-child(7),
+            .report-table td:nth-child(7) {
+                width: 16% !important;
+            }
+        }
     </style>
 </head>
 
@@ -1175,6 +1576,8 @@
                     <p class="wizard-subtitle" style="margin:0;">م. محمد يوسف الشبيلي</p>
                 </div>
                 <div class="header-actions" style="display:flex; gap:10px;">
+                    <button class="btn-icon" onclick="restoreDefaults()" title="استرجاع الافتراضي"><i
+                            data-lucide="rotate-ccw" style="width:20px; height:20px;"></i></button>
                     <button class="btn-icon" onclick="showAboutModal()" title="معلومات التطبيق"><i data-lucide="info"
                             style="width:20px; height:20px;"></i></button>
                     <button class="btn-icon" id="themeToggle" onclick="toggleTheme()" title="تغيير المظهر"><i
@@ -1187,18 +1590,20 @@
 
         <!-- Steps Bar -->
         <div class="steps-bar">
-            <div class="step active clickable" data-step="1" onclick="goToStep(1)"><span
-                    class="step-number">1</span><span class="step-label">رفع الملفات</span></div>
-            <div class="step" data-step="2" onclick="goToStep(2)"><span class="step-number">2</span><span
-                    class="step-label">الأقسام والحالات</span></div>
-            <div class="step" data-step="3" onclick="goToStep(3)"><span class="step-number">3</span><span
-                    class="step-label">اختيار المقرر</span></div>
-            <div class="step" data-step="4" onclick="goToStep(4)"><span class="step-number">4</span><span
-                    class="step-label">عدد اللجان</span></div>
-            <div class="step" data-step="5" onclick="goToStep(5)"><span class="step-number">5</span><span
-                    class="step-label">توزيع القاعات</span></div>
-            <div class="step" data-step="6" onclick="goToStep(6)"><span class="step-number">6</span><span
-                    class="step-label">التقارير</span></div>
+            <div class="step active clickable" data-step="1" onclick="goToStep(1)"
+                title="رفع ملفات SF01 (إجباري) و SS01 (اختياري)"><span class="step-number">1</span><span
+                    class="step-label">رفع الملفات</span></div>
+            <div class="step" data-step="2" onclick="goToStep(2)" title="تصفية المتدربين حسب القسم وحالة التسجيل"><span
+                    class="step-number">2</span><span class="step-label">الأقسام والحالات</span></div>
+            <div class="step" data-step="3" onclick="goToStep(3)" title="اختيار المقررات التي تريد توزيع متدربيها"><span
+                    class="step-number">3</span><span class="step-label">اختيار المقرر</span></div>
+            <div class="step" data-step="4" onclick="goToStep(4)" title="تحديد عدد اللجان أو عدد المتدربين بكل لجنة">
+                <span class="step-number">4</span><span class="step-label">عدد اللجان</span>
+            </div>
+            <div class="step" data-step="5" onclick="goToStep(5)" title="تعيين القاعات لكل لجنة وتخصيص التوزيع"><span
+                    class="step-number">5</span><span class="step-label">توزيع القاعات</span></div>
+            <div class="step" data-step="6" onclick="goToStep(6)" title="معاينة التقارير وطباعتها أو تصديرها"><span
+                    class="step-number">6</span><span class="step-label">التقارير</span></div>
         </div>
 
         <!-- Content -->
@@ -1318,9 +1723,11 @@
                     </div>
                 </div>
                 <div class="form-group">
-                    <h3 style="color:var(--text-light); margin-bottom:15px; display:flex; align-items:center; gap:8px;">
+                    <h3 style="color:var(--text-light); margin-bottom:5px; display:flex; align-items:center; gap:8px;">
                         <i data-lucide="search" style="width:20px; height:20px;"></i> تصفية المقررات:
                     </h3>
+                    <p style="font-size:11px; color:var(--text-muted); margin:0 0 12px 28px;">تم استبعاد المقررات بنوع
+                        جدولة "عملي"</p>
                     <input type="text" class="form-input" id="courseFilter" placeholder="ابحث برمز أو اسم المقرر...">
                 </div>
 
@@ -1356,17 +1763,7 @@
                     style="background:var(--bg-card); border-radius:12px; padding:15px; margin-bottom:20px; border:1px solid var(--border-dark);">
                 </div>
 
-                <div class="committee-options">
-                    <div class="committee-option" id="optionByRooms" onclick="switchCommitteeMode('rooms')">
-                        <h4 style="display:flex; align-items:center; gap:6px;"><i data-lucide="door-open"
-                                style="width:18px; height:18px;"></i> تحديد عدد القاعات</h4>
-                        <div class="input-row">
-                            <input type="number" class="form-input" id="committeeCount" min="1" max="50" value="1"
-                                oninput="updateCommitteeCalc()">
-                            <span style="color:var(--text-muted);">قاعة</span>
-                        </div>
-                        <div class="result" id="traineesPerRoomResult"></div>
-                    </div>
+                <div class="committee-options" id="committeeOptionsContainer">
                     <div class="committee-option active" id="optionByTrainees"
                         onclick="switchCommitteeMode('trainees')">
                         <h4 style="display:flex; align-items:center; gap:6px;"><i data-lucide="users"
@@ -1377,6 +1774,16 @@
                             <span style="color:var(--text-muted);">متدرب</span>
                         </div>
                         <div class="result" id="roomsNeededResult"></div>
+                    </div>
+                    <div class="committee-option" id="optionByRooms" onclick="switchCommitteeMode('rooms')">
+                        <h4 style="display:flex; align-items:center; gap:6px;"><i data-lucide="door-open"
+                                style="width:18px; height:18px;"></i> تحديد عدد القاعات</h4>
+                        <div class="input-row">
+                            <input type="number" class="form-input" id="committeeCount" min="1" max="50" value="1"
+                                oninput="updateCommitteeCalc()">
+                            <span style="color:var(--text-muted);">قاعة</span>
+                        </div>
+                        <div class="result" id="traineesPerRoomResult"></div>
                     </div>
                 </div>
             </div>
@@ -1389,6 +1796,18 @@
                 </h2>
                 <div id="roomSelectionMode"></div>
                 <div id="distributionPreview"></div>
+
+                <!-- Distribution Chart -->
+                <div id="chartContainer" class="no-print"
+                    style="background:var(--bg-card); border-radius:16px; padding:20px; margin-top:20px; border:1px solid var(--border-dark); display:none;">
+                    <h3
+                        style="color:var(--text-light); margin-bottom:15px; display:flex; align-items:center; gap:10px; font-size:15px;">
+                        <i data-lucide="bar-chart-3" style="width:20px; height:20px;"></i> توزيع المتدربين على اللجان
+                    </h3>
+                    <div style="max-height:300px; position:relative;">
+                        <canvas id="distributionChart"></canvas>
+                    </div>
+                </div>
             </div>
 
             <!-- Step 6: Reports (was step5) -->
@@ -1401,11 +1820,8 @@
                     </h3>
                     <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center;">
                         <label class="sort-option">
-                            <input type="radio" name="sortOrder" value="traineeId" checked onchange="generateReports()">
-                            <span>حسب الرقم التدريبي</span>
-                        </label>
-                        <label class="sort-option">
-                            <input type="radio" name="sortOrder" value="referenceNumber" onchange="generateReports()">
+                            <input type="radio" name="sortOrder" value="referenceNumber" checked
+                                onchange="generateReports()">
                             <span>حسب الرقم المرجعي</span>
                         </label>
                         <label class="sort-option">
@@ -1415,6 +1831,10 @@
                         <label class="sort-option">
                             <input type="radio" name="sortOrder" value="traineeName" onchange="generateReports()">
                             <span>حسب حرف الاسم الأول</span>
+                        </label>
+                        <label class="sort-option">
+                            <input type="radio" name="sortOrder" value="traineeId" onchange="generateReports()">
+                            <span>حسب الرقم التدريبي</span>
                         </label>
                     </div>
                 </div>
@@ -1471,18 +1891,32 @@
                                 </div>
                             </div>
 
-                            <!-- Trainees Per Page -->
-                            <div style="background:var(--bg-header); border-radius:10px; padding:12px;">
+                            <!-- Trainees Per Page Control -->
+                            <div
+                                style="background:var(--bg-header); border-radius:10px; padding:12px; display:flex; align-items:center; justify-content:space-between;">
                                 <h4
-                                    style="color:var(--text-light); margin-bottom:10px; display:flex; align-items:center; gap:6px; font-size:12px;">
+                                    style="color:var(--text-light); margin:0; display:flex; align-items:center; gap:6px; font-size:12px;">
                                     <i data-lucide="users" style="width:16px; height:16px;"></i> عدد المتدربين في الصفحة
                                 </h4>
-                                <div style="display:flex; align-items:center; justify-content:center; gap:10px;">
-                                    <input type="number" id="traineesPerPage" value="20" min="5" max="50"
-                                        style="width:60px; padding:6px; border-radius:6px; border:2px solid var(--border-dark); background:var(--bg-dark); color:var(--text-light); text-align:center; font-size:14px; font-weight:600;"
-                                        onchange="updateTraineesPerPage()">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <input type="number" id="traineesPerPage" placeholder="بدون تحديد"
+                                        style="width:80px; padding:6px; border-radius:6px; border:1px solid var(--border-dark); background:var(--bg-card); color:var(--text-primary); text-align:center; direction:ltr;"
+                                        onchange="generateReports()">
                                     <span style="color:var(--text-muted); font-size:12px;">متدرب / صفحة</span>
                                 </div>
+                            </div>
+
+                            <!-- Signature Footer Option -->
+                            <div
+                                style="background:var(--bg-header); border-radius:10px; padding:12px; margin-top:12px; display:flex; align-items:center; justify-content:space-between;">
+                                <label
+                                    style="color:var(--text-light); display:flex; align-items:center; gap:8px; font-size:12px; cursor:pointer;">
+                                    <input type="checkbox" id="showSignatureFooter" checked
+                                        style="width:16px; height:16px; accent-color:var(--accent-gold); cursor:pointer;"
+                                        onchange="generateReports()">
+                                    <i data-lucide="pen-line" style="width:16px; height:16px;"></i>
+                                    إضافة تذييل التوقيعات
+                                </label>
                             </div>
                         </div>
 
@@ -1536,13 +1970,21 @@
         let currentStep = 1;
         let maxReachedStep = 1;
         let sf01Data = null, ss01Data = null;
-        let sf01FileDate = null;
+        let sf01FileDate = null, ss01FileDate = null;
         let selectedDepartment = null, selectedCourse = null;
         let selectedCourseTraineeCount = 0;
         let committeeCount = 1;
         let committeeMode = 'trainees'; // 'rooms' or 'trainees' - default is trainees
+        let traineesPerCommittee = 30; // Default trainees per committee
         let roomNames = [];
         let allRoomsInBuilding = [];
+        let selectedBuildings = []; // Array of selected building names
+        let roomsWithBuilding = []; // [{room: 'قاعة 101', building: 'مبنى أ', colorIndex: 0}, ...]
+        let committeeRooms = []; // Array of length committeeCount, each element is room object or null
+        const buildingColors = [
+            '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+            '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1'
+        ]; // 10 colors for buildings
 
         // Status Filter - Predefined lists
         const defaultIncludedStatuses = [
@@ -1604,12 +2046,19 @@
 
                     document.getElementById('sf01Box').classList.add('loaded');
                     document.getElementById('sf01Info').innerHTML = `
-                        <div><strong>[OK] تم استعادة البيانات</strong></div>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div><strong>[OK] تم استعادة البيانات</strong></div>
+                            <button onclick="deleteReport('sf01')" title="حذف التقرير" 
+                                    style="background:none; border:none; color:var(--accent-red); cursor:pointer; padding:4px;">
+                                <i data-lucide="trash-2" style="width:16px; height:16px;"></i>
+                            </button>
+                        </div>
                         <div>تاريخ الملف: ${sf01FileDate.toLocaleDateString('ar-SA')}</div>
                         <div class="${ageClass}">عمر التقرير: ${days} يوم و ${hours} ساعة و ${minutes} دقيقة</div>
                         <div>عدد السجلات: ${sf01Data.length}</div>
                     `;
                     document.getElementById('sf01Info').classList.add('show');
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
 
                     populateStep2();
                     updateStepUI();
@@ -1618,13 +2067,219 @@
 
                 if (ss01Result?.rawData && ss01Result.rawData.length > 0) {
                     ss01Data = ss01Result.rawData;
+
+                    // Load SS01 file date
+                    const ss01DateResult = await loadFromIndexedDB('ss01FileDate');
+                    ss01FileDate = ss01DateResult?.rawData ? new Date(ss01DateResult.rawData) : new Date();
+
+                    const now = new Date();
+                    const diff = now - ss01FileDate;
+                    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+                    let ageClass = 'age-normal';
+                    if (days > 5) ageClass = 'age-critical';
+                    else if (days > 2) ageClass = 'age-warning';
+
                     document.getElementById('ss01Box').classList.add('loaded');
-                    document.getElementById('ss01Info').innerHTML = '<div><strong>[OK] تم استعادة بيانات القاعات</strong></div>';
+                    document.getElementById('ss01Info').innerHTML = `
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div><strong>[OK] تم استعادة بيانات القاعات</strong></div>
+                            <button onclick="deleteReport('ss01')" title="حذف التقرير" 
+                                    style="background:none; border:none; color:var(--accent-red); cursor:pointer; padding:4px;">
+                                <i data-lucide="trash-2" style="width:16px; height:16px;"></i>
+                            </button>
+                        </div>
+                        <div>تاريخ الملف: ${ss01FileDate.toLocaleDateString('ar-SA')}</div>
+                        <div class="${ageClass}">عمر التقرير: ${days} يوم و ${hours} ساعة و ${minutes} دقيقة</div>
+                        <div>عدد السجلات: ${ss01Data.length}</div>
+                    `;
                     document.getElementById('ss01Info').classList.add('show');
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
                 }
+
+                // Restore course selection
+                const courseResult = await loadFromIndexedDB('userCourseSelection');
+                if (courseResult?.rawData) {
+                    if (courseResult.rawData.department) {
+                        selectedDepartment = courseResult.rawData.department;
+                    }
+                    if (courseResult.rawData.courses && courseResult.rawData.courses.length > 0) {
+                        selectedCourses = courseResult.rawData.courses;
+                    }
+                }
+
+                // Restore room data
+                const roomResult = await loadFromIndexedDB('userRoomData');
+                if (roomResult?.rawData) {
+                    roomNames = roomResult.rawData.roomNames || [];
+                    roomsWithBuilding = roomResult.rawData.roomsWithBuilding || [];
+                    committeeRooms = roomResult.rawData.committeeRooms || [];
+                    selectedBuildings = roomResult.rawData.selectedBuildings || [];
+                    if (roomResult.rawData.committeeCount) {
+                        committeeCount = roomResult.rawData.committeeCount;
+                    }
+                }
+
+                // Restore committee settings
+                const committeeSettingsResult = await loadFromIndexedDB('userCommitteeSettings');
+                if (committeeSettingsResult?.rawData) {
+                    if (committeeSettingsResult.rawData.committeeMode) {
+                        committeeMode = committeeSettingsResult.rawData.committeeMode;
+                    }
+                    if (committeeSettingsResult.rawData.traineesPerCommittee) {
+                        traineesPerCommittee = committeeSettingsResult.rawData.traineesPerCommittee;
+                    }
+                    if (committeeSettingsResult.rawData.committeeCount) {
+                        committeeCount = committeeSettingsResult.rawData.committeeCount;
+                    }
+                }
+
             } catch (e) {
                 console.log('No saved data to restore:', e);
             }
+        }
+
+        // Restore defaults - show modal with selectable options
+        function restoreDefaults() {
+            // Remove existing modal if any
+            document.getElementById('restoreDefaultsModal')?.remove();
+
+            const modal = document.createElement('div');
+            modal.id = 'restoreDefaultsModal';
+            modal.style.cssText = 'position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center; z-index:9999;';
+            modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+
+            modal.innerHTML = `
+                <div style="background:var(--bg-card); border-radius:16px; padding:20px; max-width:520px; width:95%; border:1px solid var(--border-dark);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <h3 style="color:var(--accent-gold); margin:0; display:flex; align-items:center; gap:8px; font-size:16px;">
+                            <i data-lucide="rotate-ccw" style="width:20px; height:20px;"></i>
+                            استرجاع الافتراضي
+                        </h3>
+                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--text-muted); font-size:12px;">
+                            <input type="checkbox" id="toggleAllReset" checked 
+                                   onchange="document.querySelectorAll('#restoreDefaultsModal .reset-option').forEach(c=>c.checked=this.checked)"
+                                   style="width:16px; height:16px; accent-color:var(--accent-gold);">
+                            تحديد الكل
+                        </label>
+                    </div>
+                    <p style="color:var(--text-muted); font-size:12px; margin:0 0 15px;">
+                        اختر البيانات المراد إعادة تعيينها. الملفات المرفوعة لن تتأثر.
+                    </p>
+                    
+                    <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:15px;">
+                        <label style="display:flex; align-items:center; gap:10px; padding:8px 12px; background:var(--bg-header); border-radius:6px; cursor:pointer; border:1px solid var(--border-dark);">
+                            <input type="checkbox" id="resetStatuses" class="reset-option" checked style="width:16px; height:16px; accent-color:var(--accent-gold);">
+                            <span style="color:var(--text-light); font-size:13px;">تصنيف الحالات</span>
+                            <span style="color:var(--text-muted); font-size:11px; margin-right:auto;">(الخطوة 2)</span>
+                        </label>
+                        
+                        <label style="display:flex; align-items:center; gap:10px; padding:8px 12px; background:var(--bg-header); border-radius:6px; cursor:pointer; border:1px solid var(--border-dark);">
+                            <input type="checkbox" id="resetCourses" class="reset-option" checked style="width:16px; height:16px; accent-color:var(--accent-gold);">
+                            <span style="color:var(--text-light); font-size:13px;">اختيار المقررات</span>
+                            <span style="color:var(--text-muted); font-size:11px; margin-right:auto;">(الخطوة 3)</span>
+                        </label>
+                        
+                        <label style="display:flex; align-items:center; gap:10px; padding:8px 12px; background:var(--bg-header); border-radius:6px; cursor:pointer; border:1px solid var(--border-dark);">
+                            <input type="checkbox" id="resetCommitteeSettings" class="reset-option" checked style="width:16px; height:16px; accent-color:var(--accent-gold);">
+                            <span style="color:var(--text-light); font-size:13px;">إعدادات اللجان</span>
+                            <span style="color:var(--text-muted); font-size:11px; margin-right:auto;">(الخطوة 4)</span>
+                        </label>
+                        
+                        <label style="display:flex; align-items:center; gap:10px; padding:8px 12px; background:var(--bg-header); border-radius:6px; cursor:pointer; border:1px solid var(--border-dark);">
+                            <input type="checkbox" id="resetRooms" class="reset-option" checked style="width:16px; height:16px; accent-color:var(--accent-gold);">
+                            <span style="color:var(--text-light); font-size:13px;">القاعات والمباني</span>
+                            <span style="color:var(--text-muted); font-size:11px; margin-right:auto;">(الخطوة 5)</span>
+                        </label>
+                        
+                        <label style="display:flex; align-items:center; gap:10px; padding:8px 12px; background:var(--bg-header); border-radius:6px; cursor:pointer; border:1px solid var(--border-dark);">
+                            <input type="checkbox" id="resetDistribution" class="reset-option" checked style="width:16px; height:16px; accent-color:var(--accent-gold);">
+                            <span style="color:var(--text-light); font-size:13px;">توزيع المتدربين</span>
+                            <span style="color:var(--text-muted); font-size:11px; margin-right:auto;">(الخطوة 5)</span>
+                        </label>
+                    </div>
+                    
+                    <div style="display:flex; gap:10px; justify-content:flex-end;">
+                        <button onclick="document.getElementById('restoreDefaultsModal').remove()" 
+                                style="padding:8px 18px; border-radius:6px; border:1px solid var(--border-dark); background:var(--bg-header); color:var(--text-light); cursor:pointer; font-family:inherit; font-size:13px;">
+                            إلغاء
+                        </button>
+                        <button onclick="executeRestoreDefaults()" 
+                                style="padding:8px 18px; border-radius:6px; border:none; background:linear-gradient(135deg, var(--accent-gold), #f59e0b); color:#000; cursor:pointer; font-family:inherit; font-weight:600; font-size:13px;">
+                            تنفيذ
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        function executeRestoreDefaults() {
+            const resetStatuses = document.getElementById('resetStatuses')?.checked;
+            const resetCourses = document.getElementById('resetCourses')?.checked;
+            const resetCommitteeSettings = document.getElementById('resetCommitteeSettings')?.checked;
+            const resetRooms = document.getElementById('resetRooms')?.checked;
+            const resetDistribution = document.getElementById('resetDistribution')?.checked;
+
+            if (!resetStatuses && !resetCourses && !resetCommitteeSettings && !resetRooms && !resetDistribution) {
+                showToast('لم يتم اختيار أي بيانات للإعادة', 'warning');
+                return;
+            }
+
+            // Close modal
+            document.getElementById('restoreDefaultsModal')?.remove();
+
+            // Clear status classifications
+            if (resetStatuses) {
+                includedStatuses = [];
+                excludedStatuses = [];
+                unknownStatuses = [];
+                clearSavedData('userStatusClassifications');
+            }
+
+            // Clear course selection
+            if (resetCourses) {
+                selectedDepartment = null;
+                selectedCourses = [];
+                clearSavedData('userCourseSelection');
+            }
+
+            // Clear committee settings (count, mode)
+            if (resetCommitteeSettings) {
+                committeeCount = 1;
+                committeeMode = 'trainees';
+                step5LastCommitteeCount = 0;
+            }
+
+            // Clear room data (rooms, buildings, committeeRooms)
+            if (resetRooms) {
+                roomNames = [];
+                roomsWithBuilding = [];
+                selectedBuildings = [];
+                committeeRooms = new Array(committeeCount).fill(null);
+                clearSavedData('userRoomData');
+            }
+
+            // Clear distribution (committeeDistribution - names and counts)
+            if (resetDistribution) {
+                committeeDistribution = [];
+            }
+
+            // Reset to step 2 if we have data, otherwise step 1
+            if (sf01Data) {
+                currentStep = 2;
+                maxReachedStep = 2;
+                populateStep2();
+            } else {
+                currentStep = 1;
+                maxReachedStep = 1;
+            }
+            updateStepUI();
+            showToast('تم استرجاع الإعدادات المحددة', 'success');
         }
 
         // Initialize using shared utilities
@@ -1635,13 +2290,68 @@
         document.getElementById('sf01Input').addEventListener('change', (e) => handleFileUpload(e, 'sf01'));
         document.getElementById('ss01Input').addEventListener('change', (e) => handleFileUpload(e, 'ss01'));
 
+        // Loading Overlay Functions
+        function showLoading(message = 'جاري المعالجة...') {
+            // Remove existing overlay if any
+            document.getElementById('loadingOverlay')?.remove();
+
+            const overlay = document.createElement('div');
+            overlay.id = 'loadingOverlay';
+            overlay.className = 'loading-overlay';
+            overlay.innerHTML = `
+                <div class="loading-spinner"></div>
+                <div class="loading-text">${message}</div>
+            `;
+            document.body.appendChild(overlay);
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay')?.remove();
+        }
+
+        // File Validation
+        function validateFile(file, type) {
+            const maxSize = 10 * 1024 * 1024; // 10MB
+            const allowedExtensions = ['.csv', '.xlsx', '.xls'];
+
+            // Check file size
+            if (file.size > maxSize) {
+                showToast('حجم الملف كبير جداً (الحد الأقصى 10 ميجابايت)', 'error');
+                return false;
+            }
+
+            // Check file extension
+            const fileName = file.name.toLowerCase();
+            const hasValidExtension = allowedExtensions.some(ext => fileName.endsWith(ext));
+            if (!hasValidExtension) {
+                showToast('صيغة الملف غير مدعومة. يرجى استخدام CSV أو Excel', 'error');
+                return false;
+            }
+
+            // Check if file is empty
+            if (file.size === 0) {
+                showToast('الملف فارغ', 'error');
+                return false;
+            }
+
+            return true;
+        }
+
         function handleFileUpload(e, type) {
             const file = e.target.files[0];
             if (!file) return;
 
+            // Validate file first
+            if (!validateFile(file, type)) {
+                e.target.value = ''; // Reset input
+                return;
+            }
+
             const box = document.getElementById(type + 'Box');
             const info = document.getElementById(type + 'Info');
             const fileDate = new Date(file.lastModified);
+
+            showLoading('جاري قراءة الملف...');
 
             const reader = new FileReader();
             reader.onload = (event) => {
@@ -1649,9 +2359,19 @@
                 if (file.name.endsWith('.csv')) {
                     data = parseCSV(event.target.result);
                 } else {
+                    hideLoading();
                     showToast('يرجى استخدام ملفات CSV حالياً', 'error');
                     return;
                 }
+
+                // Validate data has rows
+                if (!data || data.length === 0) {
+                    hideLoading();
+                    showToast('الملف لا يحتوي على بيانات صالحة', 'error');
+                    return;
+                }
+
+                hideLoading();
 
                 if (type === 'sf01') {
                     sf01Data = data;
@@ -1662,7 +2382,9 @@
                     saveToIndexedDB(fileDate.toISOString(), 'sf01FileDate');
                 } else {
                     ss01Data = data;
+                    ss01FileDate = fileDate;
                     saveToIndexedDB(data, 'ss01Data');
+                    saveToIndexedDB(fileDate.toISOString(), 'ss01FileDate');
                 }
 
                 box.classList.add('loaded');
@@ -1679,16 +2401,78 @@
                 else if (days > 2) ageClass = 'age-warning';
 
                 info.innerHTML = `
-                    <div><strong>[OK] ${file.name}</strong></div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div><strong>[OK] ${file.name}</strong></div>
+                        <button onclick="deleteReport('${type}')" title="حذف التقرير" 
+                                style="background:none; border:none; color:var(--accent-red); cursor:pointer; padding:4px;">
+                            <i data-lucide="trash-2" style="width:16px; height:16px;"></i>
+                        </button>
+                    </div>
                     <div>تاريخ الملف: ${fileDate.toLocaleDateString('ar-SA')}</div>
                     <div class="${ageClass}">عمر التقرير: ${days} يوم و ${hours} ساعة و ${minutes} دقيقة</div>
                     <div>عدد السجلات: ${data.length}</div>
                 `;
                 info.classList.add('show');
+                if (typeof lucide !== 'undefined') lucide.createIcons();
                 showToast('تم تحميل: ' + file.name, 'success');
                 updateStepClickability();
             };
             reader.readAsText(file);
+        }
+
+        // Delete individual report
+        function deleteReport(type) {
+            if (type === 'sf01') {
+                if (!confirm('هل أنت متأكد من حذف تقرير SF01؟\nسيتم إعادة تعيين جميع البيانات.')) return;
+
+                sf01Data = null;
+                sf01FileDate = null;
+                selectedCourses = [];
+                selectedDepartment = null;
+                committeeDistribution = [];
+                committeeRooms = [];
+                roomsWithBuilding = [];
+                roomNames = [];
+                maxReachedStep = 1;
+                currentStep = 1;
+
+                // Clear from IndexedDB
+                clearSavedData('sf01Data');
+                clearSavedData('sf01FileDate');
+
+                // Reset UI
+                document.getElementById('sf01Box').classList.remove('loaded');
+                document.getElementById('sf01Info').innerHTML = '';
+                document.getElementById('sf01Info').classList.remove('show');
+                document.getElementById('sf01Input').value = '';
+
+                updateStepUI();
+                showToast('تم حذف تقرير SF01', 'info');
+
+            } else if (type === 'ss01') {
+                if (!confirm('هل أنت متأكد من حذف تقرير SS01؟')) return;
+
+                ss01Data = null;
+                ss01FileDate = null;
+                committeeRooms = [];
+                roomsWithBuilding = [];
+                roomNames = [];
+                selectedBuildings = [];
+
+                // Clear from IndexedDB
+                clearSavedData('ss01Data');
+                clearSavedData('ss01FileDate');
+
+                // Reset UI
+                document.getElementById('ss01Box').classList.remove('loaded');
+                document.getElementById('ss01Info').innerHTML = '';
+                document.getElementById('ss01Info').classList.remove('show');
+                document.getElementById('ss01Input').value = '';
+
+                showToast('تم حذف تقرير SS01', 'info');
+            }
+
+            updateStepClickability();
         }
 
         // Step Clickability
@@ -1771,6 +2555,9 @@
             document.getElementById('prevBtn').disabled = currentStep === 1;
             document.getElementById('nextBtn').textContent = currentStep === 6 ? 'إنهاء' : 'التالي ←';
             updateStepClickability();
+
+            // Populate step-specific content
+            if (currentStep === 4) populateStep4();
 
             // Scroll to top
             window.scrollTo(0, 0);
@@ -1949,7 +2736,7 @@
             populateStatusFilterAll();
         }
 
-        function populateStatusFilterAll() {
+        async function populateStatusFilterAll() {
             if (!sf01Data) return;
 
             allStatuses = {};
@@ -1961,14 +2748,35 @@
 
             // Classify statuses into 3 categories
             const statusNames = Object.keys(allStatuses);
-            includedStatuses = statusNames.filter(s => defaultIncludedStatuses.includes(s));
-            excludedStatuses = statusNames.filter(s => defaultExcludedStatuses.includes(s));
+
+            // Try to load saved classifications
+            const savedClassifications = await loadFromIndexedDB('userStatusClassifications');
+            const userIncluded = savedClassifications?.rawData?.included || [];
+            const userExcluded = savedClassifications?.rawData?.excluded || [];
+
+            // Merge: user classifications take priority, then defaults
+            includedStatuses = statusNames.filter(s =>
+                userIncluded.includes(s) ||
+                (defaultIncludedStatuses.includes(s) && !userExcluded.includes(s))
+            );
+            excludedStatuses = statusNames.filter(s =>
+                userExcluded.includes(s) ||
+                (defaultExcludedStatuses.includes(s) && !userIncluded.includes(s))
+            );
             unknownStatuses = statusNames.filter(s =>
-                !defaultIncludedStatuses.includes(s) && !defaultExcludedStatuses.includes(s)
+                !includedStatuses.includes(s) && !excludedStatuses.includes(s)
             );
 
             renderStatusLists();
             updateStatusSummary();
+        }
+
+        // Save status classifications to IndexedDB
+        function saveStatusClassifications() {
+            saveToIndexedDB({
+                included: includedStatuses,
+                excluded: excludedStatuses
+            }, 'userStatusClassifications');
         }
 
         // Step 3: Course Selection
@@ -2010,14 +2818,29 @@
             if (typeof lucide !== 'undefined') lucide.createIcons();
 
             document.getElementById('courseFilter').oninput = renderCourses;
+
+            // If department was already selected (persisted), render its courses
+            if (selectedDepartment) {
+                renderCourses();
+                updateSelectedCoursesChipBar();
+            }
         }
 
         function selectDepartment(dept) {
             selectedDepartment = dept;
-            selectedCourses = [];
+            // Don't clear selectedCourses - keep them unless explicitly removed
+            saveCourseSelection();
             populateStep3(); // Re-render buttons to show active state
             renderCourses();
             updateSelectedCoursesChipBar();
+        }
+
+        // Save course selection to IndexedDB
+        function saveCourseSelection() {
+            saveToIndexedDB({
+                department: selectedDepartment,
+                courses: selectedCourses
+            }, 'userCourseSelection');
         }
 
         // Generate unique color for each schedule type based on string hash
@@ -2085,10 +2908,7 @@
             // Build HTML
             let html = '';
 
-            // Practical courses warning
-            if (hasPracticalCourses) {
-                html += '<div class="alert warning" style="margin-bottom:15px; font-size:12px;">تم استبعاد المقررات بنوع جدولة "عملي"</div>';
-            }
+            // Practical courses note is now in the HTML header, no need to show warning here
 
             // Selected courses section (at top)
             if (selectedList.length > 0) {
@@ -2173,18 +2993,21 @@
             } else {
                 selectedCourses.splice(idx, 1);
             }
+            saveCourseSelection();
             renderCourses();
             updateSelectedCoursesChipBar();
         }
 
         function clearAllSelectedCourses() {
             selectedCourses = [];
+            saveCourseSelection();
             renderCourses();
             updateSelectedCoursesChipBar();
         }
 
         function removeCourseFromSelection(key) {
             selectedCourses = selectedCourses.filter(k => k !== key);
+            saveCourseSelection();
             renderCourses();
             updateSelectedCoursesChipBar();
         }
@@ -2242,9 +3065,31 @@
             document.getElementById('optionByRooms').classList.toggle('active', mode === 'rooms');
             document.getElementById('optionByTrainees').classList.toggle('active', mode === 'trainees');
             updateCommitteeCalc();
+            saveCommitteeSettings();
         }
 
-        function updateCommitteeCalc() {
+        // Populate Step 4 with persisted values
+        function populateStep4() {
+            // Set the input values from persisted data
+            const traineesPerRoomInput = document.getElementById('traineesPerRoom');
+            const committeeCountInput = document.getElementById('committeeCount');
+
+            if (traineesPerRoomInput) {
+                traineesPerRoomInput.value = traineesPerCommittee;
+            }
+            if (committeeCountInput && committeeCount > 0) {
+                committeeCountInput.value = committeeCount;
+            }
+
+            // Set active mode
+            document.getElementById('optionByRooms').classList.toggle('active', committeeMode === 'rooms');
+            document.getElementById('optionByTrainees').classList.toggle('active', committeeMode === 'trainees');
+
+            // Update calculations
+            updateCommitteeCalc(true); // Skip save during initial population
+        }
+
+        function updateCommitteeCalc(skipSave = false) {
             const n = selectedCourseTraineeCount;
 
             if (committeeMode === 'rooms') {
@@ -2257,6 +3102,9 @@
                 const perRoom = Math.ceil(n / rooms);
                 document.getElementById('traineesPerRoomResult').textContent = `≈ ${perRoom} متدرب لكل لجنة`;
                 document.getElementById('roomsNeededResult').textContent = '';
+
+                // Update committeeCount for saving
+                committeeCount = rooms;
             } else {
                 let perRoom = parseInt(document.getElementById('traineesPerRoom').value) || 0;
                 // Enforce minimum of 1
@@ -2267,6 +3115,14 @@
                 const rooms = Math.ceil(n / perRoom);
                 document.getElementById('roomsNeededResult').textContent = `= ${rooms} لجنة مطلوبة`;
                 document.getElementById('traineesPerRoomResult').textContent = '';
+
+                // Update traineesPerCommittee for saving
+                traineesPerCommittee = perRoom;
+            }
+
+            // Auto-save settings (unless skipped)
+            if (!skipSave) {
+                saveCommitteeSettings();
             }
         }
 
@@ -2274,11 +3130,22 @@
             if (committeeMode === 'rooms') {
                 committeeCount = parseInt(document.getElementById('committeeCount').value) || 1;
             } else {
-                const perRoom = parseInt(document.getElementById('traineesPerRoom').value) || 30;
-                committeeCount = Math.ceil(selectedCourseTraineeCount / perRoom);
+                traineesPerCommittee = parseInt(document.getElementById('traineesPerRoom').value) || 30;
+                committeeCount = Math.ceil(selectedCourseTraineeCount / traineesPerCommittee);
             }
             // Reset distribution for new committee count
             committeeDistribution = [];
+            // Save committee settings
+            saveCommitteeSettings();
+        }
+
+        // Save committee settings to IndexedDB
+        function saveCommitteeSettings() {
+            saveToIndexedDB({
+                committeeMode: committeeMode,
+                traineesPerCommittee: traineesPerCommittee,
+                committeeCount: committeeCount
+            }, 'userCommitteeSettings');
         }
 
         // Status Filter Functions
@@ -2360,6 +3227,7 @@
             selectedStatusItem = null;
             renderStatusLists();
             updateStatusSummary();
+            saveStatusClassifications();
             showToast('تم إضافة الحالة للمسموحة', 'success');
         }
 
@@ -2374,6 +3242,7 @@
             selectedStatusItem = null;
             renderStatusLists();
             updateStatusSummary();
+            saveStatusClassifications();
             showToast('تم إضافة الحالة للمستبعدة', 'success');
         }
 
@@ -2398,6 +3267,7 @@
             selectedStatusItem = null;
             renderStatusLists();
             updateStatusSummary();
+            saveStatusClassifications();
         }
 
         function updateStatusSummary() {
@@ -2413,7 +3283,7 @@
                     <div style="display:flex; justify-content:space-around; text-align:center; flex-wrap:wrap; gap:15px;">
                         <div style="padding:10px 20px;">
                             <div style="font-size:24px; font-weight:700; color:var(--text-light);">${total.toLocaleString()}</div>
-                            <div style="font-size:12px; color:var(--text-muted);">إجمالي المتدربين</div>
+                            <div style="font-size:14px; color:var(--text-muted);">إجمالي السجلات</div>
                         </div>
                         <div style="padding:10px 20px; background:rgba(16, 185, 129, 0.15); border-radius:10px;">
                             <div style="font-size:24px; font-weight:700; color:#10b981;">${included.toLocaleString()}</div>
@@ -2505,45 +3375,165 @@
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
+        // Track last committee count for step 5
+        let step5LastCommitteeCount = 0;
+
+        // Save room data to IndexedDB
+        function saveRoomData() {
+            saveToIndexedDB({
+                roomNames,
+                roomsWithBuilding,
+                committeeRooms,
+                selectedBuildings,
+                committeeCount
+            }, 'userRoomData');
+        }
+
+        // Clear all room data
+        function clearAllRoomData() {
+            if (!confirm('هل أنت متأكد من إزالة جميع القاعات المحفوظة؟')) return;
+            roomNames = [];
+            roomsWithBuilding = [];
+            selectedBuildings = [];
+            committeeRooms = new Array(committeeCount).fill(null);
+            committeeDistribution = [];
+            clearSavedData('userRoomData');
+            populateStep5();
+            showToast('تم إزالة جميع القاعات', 'info');
+        }
+
         // Step 5: Room Distribution (was Step 4)
         function populateStep5() {
-            roomNames = [];
             const container = document.getElementById('roomSelectionMode');
 
+            // Only reset if committeeCount changed AND no saved room data exists
+            if (committeeCount !== step5LastCommitteeCount) {
+                // Check if we have saved data to preserve
+                if (roomsWithBuilding.length === 0) {
+                    committeeRooms = new Array(committeeCount).fill(null);
+                    committeeDistribution = [];
+                } else {
+                    // Adjust committeeRooms array size to match new committeeCount
+                    if (committeeRooms.length < committeeCount) {
+                        // Add null slots for new committees
+                        while (committeeRooms.length < committeeCount) {
+                            committeeRooms.push(null);
+                        }
+                    } else if (committeeRooms.length > committeeCount) {
+                        // Trim excess slots
+                        committeeRooms = committeeRooms.slice(0, committeeCount);
+                    }
+                }
+                step5LastCommitteeCount = committeeCount;
+            }
+
             if (ss01Data && ss01Data.length) {
-                const buildings = [...new Set(ss01Data.map(r => r['مبنى']).filter(Boolean))];
+                // Get buildings with room counts
+                const buildingsData = {};
+                ss01Data.forEach(r => {
+                    const b = r['مبنى'];
+                    if (b) {
+                        if (!buildingsData[b]) buildingsData[b] = new Set();
+                        if (r['قاعة']) buildingsData[b].add(r['قاعة']);
+                    }
+                });
+
+                const buildings = Object.entries(buildingsData).map(([name, rooms]) => ({
+                    name,
+                    count: rooms.size,
+                    colorIndex: Object.keys(buildingsData).indexOf(name) % buildingColors.length
+                }));
+
                 container.innerHTML = `
+                    <!-- Main Title Banner -->
+                    <div style="background:linear-gradient(135deg, rgba(251, 191, 36, 0.25), rgba(245, 158, 11, 0.25)); border:1px solid rgba(251, 191, 36, 0.5); border-radius:10px; padding:14px 18px; margin-bottom:12px; display:flex; align-items:center; justify-content:center; gap:10px;">
+                        <i data-lucide="info" style="width:24px; height:24px; color:var(--accent-gold); flex-shrink:0;"></i>
+                        <span style="font-size:16px; font-weight:700; color:var(--accent-gold);">طريقتان لإضافة القاعات</span>
+                    </div>
+                    
+                    <!-- Method 1 Banner -->
+                    <div style="background:rgba(251, 191, 36, 0.1); border:1px solid rgba(251, 191, 36, 0.3); border-radius:8px; padding:10px 15px; margin-bottom:15px; display:flex; align-items:center; gap:10px;">
+                        <span style="background:var(--accent-gold); color:#000; padding:2px 8px; border-radius:4px; font-weight:700; font-size:12px;">1</span>
+                        <span style="font-size:13px; color:var(--text-light);">الطريقة الأولى: اختر المبنى/المباني ثم اختر القاعات</span>
+                    </div>
+                    
                     <div class="form-group">
-                        <label class="form-label">اختر المبنى:</label>
-                        <select class="form-select" id="buildingSelect">
-                            <option value="">-- اختر المبنى --</option>
-                            ${buildings.map(b => `<option value="${b}">${b}</option>`).join('')}
-                        </select>
+                        <label class="form-label" style="display:flex; align-items:center; gap:8px;">
+                            <i data-lucide="building" style="width:18px; height:18px;"></i> اختر المباني (يمكنك اختيار أكثر من مبنى):
+                        </label>
+                        <div class="buildings-container" id="buildingsContainer">
+                            ${buildings.map((b, i) => `
+                                <div class="building-card" data-building="${b.name}" data-color-index="${i % buildingColors.length}"
+                                     onclick="toggleBuilding('${b.name}')"
+                                     style="border-color: ${buildingColors[i % buildingColors.length]}30;">
+                                    <div class="name">${b.name}</div>
+                                    <div class="count">${b.count} قاعة</div>
+                                </div>
+                            `).join('')}
+                        </div>
                     </div>
-                    <div class="room-status" id="roomStatus" style="display:none;">
-                        <span>تم اختيار: <span class="count" id="selectedCount">0</span> من <span class="count">${committeeCount}</span> قاعة</span>
-                        <span id="remainingText"></span>
+                    
+                    <div class="room-status" id="roomStatus" style="display:flex; justify-content:space-between; align-items:center;">
+                        <span>تم اختيار: <span class="count" id="selectedCount">${roomsWithBuilding.length}</span> من <span class="count">${committeeCount}</span> قاعة</span>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span id="remainingText"></span>
+                            ${roomsWithBuilding.length > 0 ? `
+                                <button onclick="clearAllRoomData()" style="background:rgba(239,68,68,0.15); color:#ef4444; border:1px solid #ef4444; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; display:flex; align-items:center; gap:4px;">
+                                    <i data-lucide="trash-2" style="width:14px; height:14px;"></i> مسح الكل
+                                </button>
+                            ` : ''}
+                        </div>
                     </div>
+                    
                     <div class="form-group">
                         <label class="form-label">ابحث في القاعات:</label>
                         <input type="text" class="form-input room-search" id="roomSearch" placeholder="اكتب للبحث..." oninput="filterRooms()">
                     </div>
+                    
                     <div class="room-grid" id="roomGrid"></div>
+                    
                     <div id="maxReachedAlert" class="alert info" style="display:none;">تم اختيار العدد المطلوب من القاعات (${committeeCount})</div>
+                    
+                    <!-- Method 2 Section - Styled with gold -->
+                    <div style="margin-top:20px; padding-top:20px; border-top:2px dashed rgba(251, 191, 36, 0.3);">
+                        <div onclick="toggleManualRoomSection()" style="cursor:pointer; display:flex; align-items:center; justify-content:space-between; padding:12px 15px; background:linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.2)); border:1px solid rgba(251, 191, 36, 0.5); border-radius:10px; margin-bottom:10px;">
+                            <span style="color:var(--accent-gold); font-weight:600; display:flex; align-items:center; gap:10px;">
+                                <span style="background:var(--accent-gold); color:#000; padding:2px 8px; border-radius:4px; font-weight:700; font-size:12px;">2</span>
+                                <span style="font-size:14px;">الطريقة الثانية: إضافة قاعة يدوياً</span>
+                            </span>
+                            <i data-lucide="chevron-down" id="manualRoomChevron" style="width:18px; height:18px; color:var(--accent-gold); transition:transform 0.2s;"></i>
+                        </div>
+                        <div id="manualRoomSection" style="display:none; padding:15px; background:rgba(251, 191, 36, 0.1); border-radius:10px; border:1px solid rgba(251, 191, 36, 0.3);">
+                            <div class="room-input-group" style="display:flex; gap:10px; margin-bottom:10px;">
+                                <input type="text" class="form-input" id="manualRoomInput" placeholder="اكتب اسم القاعة واضغط Enter" style="flex:1; border-color:rgba(251, 191, 36, 0.4);">
+                                <button class="nav-btn next" onclick="addManualRoomWithSS01()" style="padding:10px 20px;">إضافة</button>
+                            </div>
+                            <div class="room-chips" id="manualRoomChips" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
+                        </div>
+                    </div>
                 `;
 
-                document.getElementById('buildingSelect').onchange = (e) => {
-                    const building = e.target.value;
-                    allRoomsInBuilding = [...new Set(ss01Data.filter(r => r['مبنى'] === building).map(r => r['قاعة']).filter(Boolean))];
-                    roomNames = [];
-                    renderRoomGrid();
-                    document.getElementById('roomStatus').style.display = 'flex';
-                };
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+
+                // Render any previously saved manual rooms and expand section if needed
+                renderManualRoomChips();
+                const manualRooms = roomsWithBuilding.filter(r => r.building === 'يدوي');
+                if (manualRooms.length > 0) {
+                    const section = document.getElementById('manualRoomSection');
+                    const chevron = document.getElementById('manualRoomChevron');
+                    if (section) section.style.display = 'block';
+                    if (chevron) chevron.style.transform = 'rotate(180deg)';
+                }
             } else {
                 container.innerHTML = `
-                    <div class="alert warning">لم يتم رفع ملف SS01 ليتم اختيار القاعات. يمكنك حالياً إدخال أسماء القاعات يدوياً، أو ستظهر أسماء اللجان كما هو موضح في جدول معاينة التوزيع.</div>
-                    <div class="room-status">
-                        <span>تم إدخال: <span class="count" id="manualCount">0</span> من <span class="count">${committeeCount}</span> قاعة</span>
+                    <div class="alert warning">لم يتم رفع ملف SS01 ليتم اختيار القاعات. يمكنك حالياً إدخال أسماء القاعات يدوياً، أو ستظهر أسماء اللجان كما هو موضح في جدول توزيع المتدربين على اللجان.</div>
+                    <div class="room-status" style="display:flex; justify-content:space-between; align-items:center;">
+                        <span>تم إدخال: <span class="count" id="manualCount">${roomNames.length}</span> من <span class="count">${committeeCount}</span> قاعة</span>
+                        ${roomNames.length > 0 ? `
+                            <button onclick="clearAllRoomData()" style="background:rgba(239,68,68,0.15); color:#ef4444; border:1px solid #ef4444; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; display:flex; align-items:center; gap:4px;">
+                                <i data-lucide="trash-2" style="width:14px; height:14px;"></i> مسح الكل
+                            </button>
+                        ` : ''}
                     </div>
                     <div class="form-group">
                         <label class="form-label">أدخل أسماء القاعات:</label>
@@ -2559,49 +3549,239 @@
                 document.getElementById('roomInput').onkeypress = (e) => {
                     if (e.key === 'Enter') addRoom();
                 };
+
+                // Render any previously saved rooms
+                renderRoomChips();
+                if (typeof lucide !== 'undefined') lucide.createIcons();
             }
 
             updateDistributionPreview();
         }
 
+        function toggleBuilding(buildingName) {
+            const card = document.querySelector(`.building-card[data-building="${buildingName}"]`);
+            const colorIndex = parseInt(card.dataset.colorIndex);
+            const color = buildingColors[colorIndex];
+
+            if (selectedBuildings.includes(buildingName)) {
+                // Deselect building
+                selectedBuildings = selectedBuildings.filter(b => b !== buildingName);
+                card.classList.remove('selected');
+                card.style.background = '';
+                card.style.borderColor = color + '30';
+
+                // Remove rooms from this building
+                roomsWithBuilding = roomsWithBuilding.filter(r => r.building !== buildingName);
+                roomNames = roomsWithBuilding.map(r => r.room);
+            } else {
+                // Select building
+                selectedBuildings.push(buildingName);
+                card.classList.add('selected');
+                card.style.background = color + '20';
+                card.style.borderColor = color;
+            }
+
+            // Update rooms grid for all selected buildings
+            updateRoomsFromSelectedBuildings();
+            renderRoomGrid();
+            updateDistributionPreview();
+        }
+
+        function updateRoomsFromSelectedBuildings() {
+            allRoomsInBuilding = [];
+            selectedBuildings.forEach((building, bIndex) => {
+                const colorIndex = [...document.querySelectorAll('.building-card')].findIndex(c => c.dataset.building === building);
+                const rooms = [...new Set(ss01Data.filter(r => r['مبنى'] === building).map(r => r['قاعة']).filter(Boolean))];
+                rooms.forEach(room => {
+                    if (!allRoomsInBuilding.some(r => r.room === room)) {
+                        allRoomsInBuilding.push({
+                            room,
+                            building,
+                            colorIndex: colorIndex % buildingColors.length
+                        });
+                    }
+                });
+            });
+        }
+
         function renderRoomGrid() {
             const filter = (document.getElementById('roomSearch')?.value || '').toLowerCase();
             let rooms = allRoomsInBuilding;
-            if (filter) rooms = rooms.filter(r => r.toLowerCase().includes(filter));
+            if (filter) rooms = rooms.filter(r => r.room.toLowerCase().includes(filter));
 
-            const isMaxReached = roomNames.length >= committeeCount;
+            const isMaxReached = roomsWithBuilding.length >= committeeCount;
+            const gridEl = document.getElementById('roomGrid');
+            if (!gridEl) return;
 
-            document.getElementById('roomGrid').innerHTML = rooms.map(r => {
-                const isSelected = roomNames.includes(r);
+            gridEl.innerHTML = rooms.map(r => {
+                const isSelected = roomsWithBuilding.some(rb => rb.room === r.room);
                 const isDisabled = !isSelected && isMaxReached;
-                return `<label class="room-checkbox ${isSelected ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}" onclick="toggleRoom('${r}', event)">
-                    <input type="checkbox" ${isSelected ? 'checked' : ''} ${isDisabled ? 'disabled' : ''}> ${r}
+                const color = buildingColors[r.colorIndex];
+                return `<label class="room-checkbox ${isSelected ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}" 
+                               onclick="toggleRoom('${r.room}', '${r.building}', ${r.colorIndex}, event)"
+                               style="border-right: 3px solid ${color};">
+                    <input type="checkbox" ${isSelected ? 'checked' : ''} ${isDisabled ? 'disabled' : ''}> ${r.room}
                 </label>`;
             }).join('');
 
-            document.getElementById('selectedCount').textContent = roomNames.length;
-            const remaining = committeeCount - roomNames.length;
-            document.getElementById('remainingText').textContent = remaining > 0 ? `(متبقي: ${remaining})` : '';
-            document.getElementById('maxReachedAlert').style.display = isMaxReached ? 'block' : 'none';
+            const countEl = document.getElementById('selectedCount');
+            if (countEl) countEl.textContent = roomsWithBuilding.length;
+
+            const remaining = committeeCount - roomsWithBuilding.length;
+            const remainingEl = document.getElementById('remainingText');
+            if (remainingEl) remainingEl.textContent = remaining > 0 ? `(متبقي: ${remaining})` : '';
+
+            const alertEl = document.getElementById('maxReachedAlert');
+            if (alertEl) alertEl.style.display = isMaxReached ? 'block' : 'none';
         }
 
         function filterRooms() {
             renderRoomGrid();
         }
 
-        function toggleRoom(name, e) {
+        function toggleRoom(roomName, buildingName, colorIndex, e) {
             e.preventDefault();
-            if (roomNames.includes(name)) {
-                roomNames = roomNames.filter(r => r !== name);
-            } else if (roomNames.length < committeeCount) {
-                roomNames.push(name);
+            const roomObj = { room: roomName, building: buildingName, colorIndex };
+
+            // Check if room is already assigned
+            const existingCommitteeIndex = committeeRooms.findIndex(r => r && r.room === roomName);
+
+            if (existingCommitteeIndex >= 0) {
+                // Remove room from that committee
+                committeeRooms[existingCommitteeIndex] = null;
+                roomsWithBuilding = roomsWithBuilding.filter(r => r.room !== roomName);
             } else {
-                showToast(`تم الوصول للحد الأقصى (${committeeCount} قاعة)`, 'warning');
-                return;
+                // Find first empty slot
+                let emptySlotIndex = committeeRooms.findIndex(r => r === null);
+                if (emptySlotIndex === -1 && committeeRooms.length < committeeCount) {
+                    emptySlotIndex = committeeRooms.length;
+                }
+
+                if (emptySlotIndex === -1) {
+                    showToast(`تم الوصول للحد الأقصى (${committeeCount} قاعة)`, 'warning');
+                    return;
+                }
+
+                // Add room to first empty slot
+                committeeRooms[emptySlotIndex] = roomObj;
+                roomsWithBuilding.push(roomObj);
             }
-            committeeDistribution = []; // Reset for new room configuration
+
+            roomNames = roomsWithBuilding.map(r => r.room);
+
+            // Update hasRoom in committeeDistribution without resetting names
+            updateCommitteeHasRoom();
+            saveRoomData();
+
             renderRoomGrid();
+            renderCommitteeTable();
+        }
+
+        // Update hasRoom status without resetting committee names
+        function updateCommitteeHasRoom() {
+            for (let i = 0; i < committeeDistribution.length; i++) {
+                committeeDistribution[i].hasRoom = !!committeeRooms[i];
+            }
+        }
+
+        // Drag and Drop functions
+        let draggedIndex = null;
+
+        function dragStart(e) {
+            draggedIndex = parseInt(e.target.dataset.index);
+            e.target.classList.add('dragging');
+        }
+
+        function dragOver(e) {
+            e.preventDefault();
+        }
+
+        function drop(e) {
+            e.preventDefault();
+            const targetIndex = parseInt(e.target.closest('.sortable-room-item')?.dataset.index);
+            if (targetIndex === undefined || targetIndex === draggedIndex) return;
+
+            // Reorder array
+            const [draggedItem] = roomsWithBuilding.splice(draggedIndex, 1);
+            roomsWithBuilding.splice(targetIndex, 0, draggedItem);
+            roomNames = roomsWithBuilding.map(r => r.room);
+
+            committeeDistribution = []; // Reset distribution
+            renderSortableRooms();
             updateDistributionPreview();
+        }
+
+        function dragEnd(e) {
+            e.target.classList.remove('dragging');
+            draggedIndex = null;
+        }
+
+        // Room-based drag and drop (drag only the room element, not the row)
+        function dragStartRoom(e) {
+            const roomItem = e.target.closest('.room-drag-item');
+            if (!roomItem) return;
+            draggedIndex = parseInt(roomItem.dataset.committeeIndex);
+            roomItem.style.opacity = '0.5';
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function dragOverRoom(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        }
+
+        function dropRoom(e) {
+            e.preventDefault();
+            const dropTarget = e.target.closest('.room-drag-item, .room-drop-zone');
+            if (!dropTarget) return;
+
+            const targetIndex = parseInt(dropTarget.dataset.committeeIndex);
+            if (isNaN(targetIndex) || targetIndex === draggedIndex || draggedIndex === null) return;
+
+            // Swap rooms in committeeRooms (the source has a room, target may or may not)
+            const draggedRoom = committeeRooms[draggedIndex];
+            const targetRoom = committeeRooms[targetIndex];
+
+            if (!draggedRoom) return; // Can only drag rooms that exist
+
+            // Swap rooms between positions
+            committeeRooms[draggedIndex] = targetRoom; // May be null
+            committeeRooms[targetIndex] = draggedRoom;
+
+            // Update roomNames and roomsWithBuilding
+            roomsWithBuilding = committeeRooms.filter(r => r !== null);
+            roomNames = roomsWithBuilding.map(r => r.room);
+
+            // Update hasRoom without resetting committee names
+            updateCommitteeHasRoom();
+            renderRoomGrid();
+            renderCommitteeTable();
+
+            draggedIndex = null;
+        }
+
+        function dragEndRoom(e) {
+            const roomItem = e.target.closest('.room-drag-item');
+            if (roomItem) roomItem.style.opacity = '1';
+            draggedIndex = null;
+        }
+
+        function removeRoomFromCommittee(index) {
+            if (committeeRooms[index]) {
+                const removedRoom = committeeRooms[index];
+                committeeRooms[index] = null;
+                roomsWithBuilding = roomsWithBuilding.filter(r => r.room !== removedRoom.room);
+                roomNames = roomsWithBuilding.map(r => r.room);
+
+                updateCommitteeHasRoom();
+                saveRoomData();
+                renderRoomGrid();
+                renderCommitteeTable();
+            }
+        }
+
+        function removeSelectedRoom(index) {
+            removeRoomFromCommittee(index);
         }
 
         function addRoom() {
@@ -2614,9 +3794,26 @@
             }
 
             if (name && !roomNames.includes(name)) {
+                const roomObj = { room: name, building: 'يدوي', colorIndex: 0 };
                 roomNames.push(name);
+                roomsWithBuilding.push(roomObj);
+
+                // Also update committeeRooms - find first empty slot
+                let emptySlotIndex = committeeRooms.findIndex(r => r === null);
+                if (emptySlotIndex === -1 && committeeRooms.length < committeeCount) {
+                    emptySlotIndex = committeeRooms.length;
+                }
+                if (emptySlotIndex >= 0) {
+                    // Ensure committeeRooms array has enough slots
+                    while (committeeRooms.length <= emptySlotIndex) {
+                        committeeRooms.push(null);
+                    }
+                    committeeRooms[emptySlotIndex] = roomObj;
+                }
+
                 input.value = '';
                 committeeDistribution = []; // Reset for new room
+                saveRoomData();
                 renderRoomChips();
                 updateDistributionPreview();
             }
@@ -2624,17 +3821,101 @@
 
         function removeRoom(name) {
             roomNames = roomNames.filter(r => r !== name);
+            roomsWithBuilding = roomsWithBuilding.filter(r => r.room !== name);
+            // Also remove from committeeRooms
+            const idx = committeeRooms.findIndex(r => r && r.room === name);
+            if (idx >= 0) committeeRooms[idx] = null;
             committeeDistribution = []; // Reset after removing room
+            saveRoomData();
             renderRoomChips();
             updateDistributionPreview();
         }
 
         function renderRoomChips() {
-            document.getElementById('roomChips').innerHTML = roomNames.map(r =>
-                `<div class="room-chip">${r} <span class="remove" onclick="removeRoom('${r}')">✕</span></div>`
-            ).join('');
-            document.getElementById('manualCount').textContent = roomNames.length;
-            document.getElementById('manualMaxAlert').style.display = roomNames.length >= committeeCount ? 'block' : 'none';
+            const chipsEl = document.getElementById('roomChips');
+            if (chipsEl) {
+                chipsEl.innerHTML = roomNames.map(r =>
+                    `<div class="room-chip">${r} <span class="remove" onclick="removeRoom('${r}')">✕</span></div>`
+                ).join('');
+            }
+            const countEl = document.getElementById('manualCount');
+            if (countEl) countEl.textContent = roomNames.length;
+            const alertEl = document.getElementById('manualMaxAlert');
+            if (alertEl) alertEl.style.display = roomNames.length >= committeeCount ? 'block' : 'none';
+        }
+
+        // Toggle manual room section visibility (when SS01 is present)
+        function toggleManualRoomSection() {
+            const section = document.getElementById('manualRoomSection');
+            const chevron = document.getElementById('manualRoomChevron');
+            if (section && chevron) {
+                const isOpen = section.style.display !== 'none';
+                section.style.display = isOpen ? 'none' : 'block';
+                chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
+
+                if (!isOpen) {
+                    // Attach keypress listener when opened
+                    const input = document.getElementById('manualRoomInput');
+                    if (input) {
+                        input.onkeypress = (e) => { if (e.key === 'Enter') addManualRoomWithSS01(); };
+                    }
+                }
+            }
+        }
+
+        // Add manual room when SS01 file is present
+        function addManualRoomWithSS01() {
+            const input = document.getElementById('manualRoomInput');
+            const name = input?.value?.trim();
+            if (!name) return;
+
+            if (roomsWithBuilding.length >= committeeCount) {
+                showToast(`تم الوصول للحد الأقصى (${committeeCount} قاعة)`, 'warning');
+                return;
+            }
+
+            if (roomsWithBuilding.some(r => r.room === name)) {
+                showToast('هذه القاعة موجودة بالفعل', 'warning');
+                return;
+            }
+
+            const roomObj = { room: name, building: 'يدوي', colorIndex: 9 }; // Use last color (purple) for manual
+            roomsWithBuilding.push(roomObj);
+            roomNames.push(name);
+
+            // Find empty slot in committeeRooms
+            let emptySlotIndex = committeeRooms.findIndex(r => r === null);
+            if (emptySlotIndex === -1 && committeeRooms.length < committeeCount) {
+                emptySlotIndex = committeeRooms.length;
+            }
+            if (emptySlotIndex >= 0) {
+                while (committeeRooms.length <= emptySlotIndex) {
+                    committeeRooms.push(null);
+                }
+                committeeRooms[emptySlotIndex] = roomObj;
+            }
+
+            input.value = '';
+            saveRoomData();
+            renderRoomGrid();
+            renderManualRoomChips();
+            renderCommitteeTable();
+            showToast(`تم إضافة قاعة: ${name}`, 'success');
+        }
+
+        // Render chips for manually added rooms (when SS01 is present)
+        function renderManualRoomChips() {
+            const chipsEl = document.getElementById('manualRoomChips');
+            if (!chipsEl) return;
+
+            const manualRooms = roomsWithBuilding.filter(r => r.building === 'يدوي');
+            chipsEl.innerHTML = manualRooms.map(r => `
+                <div style="background:var(--accent-blue); color:#fff; padding:4px 8px; border-radius:6px; font-size:12px; display:inline-flex; align-items:center; gap:6px;">
+                    ${r.room}
+                    <span onclick="removeRoom('${r.room}')" 
+                          style="cursor:pointer; background:rgba(255,255,255,0.2); padding:2px 4px; border-radius:4px; font-weight:700;">✕</span>
+                </div>
+            `).join('');
         }
 
         function updateDistributionPreview() {
@@ -2673,16 +3954,36 @@
         }
 
         function initCommitteeDistribution() {
-            const rooms = roomNames.length || committeeCount;
+            // Always use committeeCount
+            const rooms = committeeCount;
             const n = totalTraineesCount;
             const base = Math.floor(n / rooms);
             const extra = n % rooms;
 
+            // Initialize committeeRooms if needed (array of length committeeCount)
+            if (committeeRooms.length !== rooms) {
+                // Preserve existing rooms in order, pad with nulls
+                const newCommitteeRooms = [];
+                for (let i = 0; i < rooms; i++) {
+                    newCommitteeRooms.push(committeeRooms[i] || roomsWithBuilding[i] || null);
+                }
+                committeeRooms = newCommitteeRooms;
+            }
+
+            // Preserve existing committee names and custom status if available
+            const existingData = committeeDistribution.map(c => ({
+                name: c.name,
+                isNameCustom: c.isNameCustom || false
+            }));
+
             committeeDistribution = [];
             for (let i = 0; i < rooms; i++) {
                 const count = base + (i < extra ? 1 : 0);
-                const name = roomNames[i] || `لجنة ${i + 1}`;
-                committeeDistribution.push({ name, count, locked: false });
+                // Keep existing name and custom status or use default
+                const name = existingData[i]?.name || `لجنة ${i + 1}`;
+                const isNameCustom = existingData[i]?.isNameCustom || false;
+                const hasRoom = !!committeeRooms[i];
+                committeeDistribution.push({ name, count, locked: false, hasRoom, isNameCustom });
             }
         }
 
@@ -2692,37 +3993,82 @@
             const diff = totalTraineesCount - currentTotal;
 
             let html = `
-                <h3 style="margin-top:20px; color:var(--text-light); display:flex; align-items:center; gap:8px;">
-                    <i data-lucide="settings-2" style="width:20px; height:20px;"></i> توزيع المتدربين على اللجان
-                </h3>
-                <div class="committee-dist-toolbar">
-                    <button onclick="resetDistribution()" title="إعادة التوزيع المتساوي">
-                        <i data-lucide="refresh-ccw" style="width:16px; height:16px;"></i> إعادة ضبط
-                    </button>
-                    <button onclick="autoBalance()" title="موازنة تلقائية">
-                        <i data-lucide="scale" style="width:16px; height:16px;"></i> تسوية تلقائية
-                    </button>
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-top:20px; margin-bottom:10px;">
+                    <h3 style="color:var(--text-light); margin:0; display:flex; align-items:center; gap:8px;">
+                        <i data-lucide="settings-2" style="width:20px; height:20px;"></i> توزيع المتدربين على اللجان
+                    </h3>
+                    <div style="display:flex; gap:8px;">
+                        <button onclick="resetDistribution()" 
+                            title="إعادة ضبط: إعادة تسمية اللجان غير المعدلة يدوياً + توزيع متساوي من البداية"
+                            style="background:var(--bg-header); border:1px solid var(--border-dark); color:var(--text-light); padding:6px 12px; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:6px; font-size:12px;">
+                            <i data-lucide="refresh-ccw" style="width:14px; height:14px;"></i> إعادة ضبط
+                        </button>
+                        <button onclick="autoBalance()" 
+                            title="تسوية تلقائية: نستخدمها عند إضافة/حذف شعبة حيث يتم إعادة توزيع الفائض/الناقص على اللجان غير المقفلة فقط. مثال: إذا بقي 5 متدربين يوزعهم على اللجان المفتوحة"
+                            style="background:var(--bg-card); border:1px solid var(--accent-gold); color:var(--accent-gold); padding:6px 12px; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:6px; font-size:12px;">
+                            <i data-lucide="scale" style="width:14px; height:14px;"></i> تسوية تلقائية
+                        </button>
+                    </div>
                 </div>
                 <table class="committee-dist-table">
                     <thead>
                         <tr>
-                            <th style="width:40%;">اللجنة</th>
-                            <th style="width:25%;">عدد المتدربين</th>
-                            <th style="width:15%;">قفل</th>
-                            <th style="width:20%;">حذف</th>
+                            <th style="width:10%;">#</th>
+                            <th style="width:25%;">القاعة</th>
+                            <th style="width:25%;">اللجنة</th>
+                            <th style="width:15%;">المتدربين</th>
+                            <th style="width:10%;">قفل</th>
+                            <th style="width:15%;">حذف</th>
                         </tr>
                     </thead>
                     <tbody>`;
 
             committeeDistribution.forEach((c, i) => {
                 const isWarning = c.count === 0;
-                const rowClass = isWarning ? 'warning-row' : '';
+                const isPending = !c.hasRoom;
+                const rowClass = isWarning ? 'warning-row' : (isPending ? 'committee-pending' : '');
                 const lockIcon = c.locked ? 'lock' : 'lock-open';
                 const lockClass = c.locked ? 'locked' : '';
 
+                // Get room info from committeeRooms (not roomsWithBuilding)
+                const roomInfo = committeeRooms[i];
+                const roomColor = roomInfo ? buildingColors[roomInfo.colorIndex] : '#666';
+                const roomName = roomInfo ? roomInfo.room : '';
+                const roomBuilding = roomInfo ? roomInfo.building : '';
+
                 html += `
-                    <tr class="${rowClass}">
-                        <td>${c.name}${isWarning ? ' ⚠️' : ''}</td>
+                    <tr class="${rowClass}" data-index="${i}">
+                        <td style="font-weight:600; color:var(--accent-gold);">${i + 1}</td>
+                        <td>
+                            ${roomInfo ? `
+                                <div class="room-drag-item" draggable="true" data-committee-index="${i}"
+                                     ondragstart="dragStartRoom(event)" ondragover="dragOverRoom(event)" 
+                                     ondrop="dropRoom(event)" ondragend="dragEndRoom(event)"
+                                     style="display:flex; align-items:center; gap:6px; padding:6px; background:var(--bg-header); border-radius:6px; border-right:3px solid ${roomColor}; cursor:grab;">
+                                    <span class="drag-handle" style="color:var(--text-muted);">
+                                        <i data-lucide="grip-vertical" style="width:14px; height:14px;"></i>
+                                    </span>
+                                    <span style="width:8px; height:8px; border-radius:50%; background:${roomColor};"></span>
+                                    <span style="flex:1;"><strong>${roomName}</strong></span>
+                                    <button class="remove-btn" onclick="removeRoomFromCommittee(${i})" title="إزالة القاعة"
+                                            style="background:none; border:none; color:var(--accent-red); cursor:pointer; padding:2px;">
+                                        <i data-lucide="x" style="width:14px; height:14px;"></i>
+                                    </button>
+                                </div>
+                                <div style="font-size:10px; color:var(--text-muted); margin-right:20px; margin-top:2px;">${roomBuilding}</div>
+                            ` : `
+                                <div class="room-drop-zone" data-committee-index="${i}"
+                                     ondragover="dragOverRoom(event)" ondrop="dropRoom(event)"
+                                     style="padding:10px; text-align:center; border:2px dashed var(--border-dark); border-radius:6px;">
+                                    <span style="color:#f59e0b;">⚠️ لم تُحدد</span>
+                                </div>
+                            `}
+                        </td>
+                        <td>
+                            <input type="text" class="committee-name-input ${c.isNameCustom ? 'custom-name' : ''}" value="${c.name}" 
+                                   style="background:transparent; border:1px solid ${c.isNameCustom ? 'var(--accent-gold)' : 'var(--border-dark)'}; border-radius:6px; padding:4px 8px; color:var(--text-light); font-size:12px; width:100%;"
+                                   onchange="updateCommitteeName(${i}, this.value)">
+                        </td>
                         <td>
                             <input type="number" class="count-input" value="${c.count}" min="0" 
                                    onchange="updateCommitteeCount(${i}, parseInt(this.value) || 0)">
@@ -2741,6 +4087,20 @@
                     </tr>`;
             });
 
+            // Add committee button row
+            html += `
+                <tr class="add-committee-row">
+                    <td colspan="6" style="text-align:center; padding:12px;">
+                        <button onclick="addCommittee()" class="add-committee-btn" title="إضافة لجنة جديدة"
+                                style="background:var(--bg-header); border:2px dashed var(--accent-gold); border-radius:10px; 
+                                       padding:10px 20px; color:var(--accent-gold); cursor:pointer; font-family:inherit;
+                                       font-size:14px; display:inline-flex; align-items:center; gap:8px; transition:all 0.2s;">
+                            <i data-lucide="plus-circle" style="width:20px; height:20px;"></i>
+                            إضافة لجنة
+                        </button>
+                    </td>
+                </tr>`;
+
             html += `</tbody></table>`;
 
             // Total bar
@@ -2758,6 +4118,137 @@
 
             // Reinitialize Lucide icons
             if (typeof lucide !== 'undefined') lucide.createIcons();
+
+            // Render distribution chart
+            renderDistributionChart();
+        }
+
+        // Chart instance reference
+        let distributionChartInstance = null;
+
+        function renderDistributionChart() {
+            const chartContainer = document.getElementById('chartContainer');
+            const canvas = document.getElementById('distributionChart');
+
+            if (!chartContainer || !canvas || committeeDistribution.length === 0) {
+                if (chartContainer) chartContainer.style.display = 'none';
+                return;
+            }
+
+            // Show chart container
+            chartContainer.style.display = 'block';
+
+            // Prepare chart data
+            const labels = committeeDistribution.map(c => c.name);
+            const data = committeeDistribution.map(c => c.count);
+            const averageCount = totalTraineesCount / committeeDistribution.length;
+
+            // Generate colors based on count (green if at average, gradient otherwise)
+            const backgroundColors = data.map(count => {
+                if (count === 0) return 'rgba(239, 68, 68, 0.7)'; // Red for empty
+                if (count >= averageCount - 1 && count <= averageCount + 1) return 'rgba(16, 185, 129, 0.7)'; // Green for balanced
+                return 'rgba(251, 191, 36, 0.7)'; // Gold for others
+            });
+
+            const borderColors = data.map(count => {
+                if (count === 0) return 'rgba(239, 68, 68, 1)';
+                if (count >= averageCount - 1 && count <= averageCount + 1) return 'rgba(16, 185, 129, 1)';
+                return 'rgba(251, 191, 36, 1)';
+            });
+
+            // Destroy existing chart if any
+            if (distributionChartInstance) {
+                distributionChartInstance.destroy();
+            }
+
+            // Create new chart
+            const ctx = canvas.getContext('2d');
+            distributionChartInstance = new Chart(ctx, {
+                type: 'bar',
+                plugins: [ChartDataLabels],
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'عدد المتدربين',
+                        data: data,
+                        backgroundColor: backgroundColors,
+                        borderColor: borderColors,
+                        borderWidth: 2,
+                        borderRadius: 6,
+                        barThickness: 'flex',
+                        maxBarThickness: 50
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            rtl: true,
+                            textDirection: 'rtl',
+                            backgroundColor: 'rgba(30, 41, 59, 0.95)',
+                            titleFont: { family: 'Cairo', size: 14 },
+                            bodyFont: { family: 'Cairo', size: 13 },
+                            padding: 12,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function (context) {
+                                    const percentage = ((context.raw / totalTraineesCount) * 100).toFixed(1);
+                                    return `${context.raw} متدرب (${percentage}%)`;
+                                }
+                            }
+                        },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'start',
+                            offset: 4,
+                            textAlign: 'center',
+                            color: '#ffffff',
+                            font: {
+                                family: 'Cairo',
+                                size: 14,
+                                weight: 'bold'
+                            },
+                            formatter: function (value) {
+                                return value;
+                            }
+                        }
+                    },
+                    layout: {
+                        padding: {
+                            top: 30
+                        }
+                    },
+                    scales: {
+                        y: {
+                            display: false,
+                            beginAtZero: true,
+                            grace: '15%'
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: '#94a3b8',
+                                font: { family: 'Cairo', size: 11 },
+                                maxRotation: 45,
+                                minRotation: 0
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 500,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            });
+
+            // Reinitialize Lucide icons in chart container
+            if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
         function updateCommitteeCount(index, newCount) {
@@ -2767,11 +4258,84 @@
             }
         }
 
+        function updateCommitteeName(index, newName) {
+            if (index >= 0 && index < committeeDistribution.length) {
+                const trimmedName = newName.trim();
+                const defaultName = `لجنة ${index + 1}`;
+
+                // Check if name is different from default
+                if (trimmedName && trimmedName !== defaultName) {
+                    committeeDistribution[index].name = trimmedName;
+                    committeeDistribution[index].isNameCustom = true;
+                } else {
+                    committeeDistribution[index].name = defaultName;
+                    committeeDistribution[index].isNameCustom = false;
+                }
+                renderCommitteeTable();
+            }
+        }
+
         function toggleCommitteeLock(index) {
             if (index >= 0 && index < committeeDistribution.length) {
                 committeeDistribution[index].locked = !committeeDistribution[index].locked;
                 renderCommitteeTable();
             }
+        }
+
+        function addCommittee() {
+            // Add new committee
+            committeeCount++;
+            step5LastCommitteeCount = committeeCount;
+
+            // Add new committeeRoom slot (null = no room assigned)
+            committeeRooms.push(null);
+
+            // Add new committee to distribution
+            const newCommittee = {
+                name: `لجنة ${committeeCount}`,
+                count: 0,
+                locked: false,
+                hasRoom: false,
+                isNameCustom: false
+            };
+            committeeDistribution.push(newCommittee);
+
+            // Redistribute trainees among unlocked committees
+            redistributeTrainees();
+
+            renderRoomGrid();
+            renderCommitteeTable();
+            showToast('تم إضافة لجنة جديدة', 'success');
+        }
+
+        function redistributeTrainees() {
+            // Get locked committees and their total
+            let lockedTotal = 0;
+            let unlockedCount = 0;
+
+            committeeDistribution.forEach(c => {
+                if (c.locked) {
+                    lockedTotal += c.count;
+                } else {
+                    unlockedCount++;
+                }
+            });
+
+            // Calculate remaining trainees for unlocked committees
+            const remainingTrainees = totalTraineesCount - lockedTotal;
+
+            if (unlockedCount === 0 || remainingTrainees < 0) return;
+
+            // Distribute remaining trainees evenly among unlocked
+            const base = Math.floor(remainingTrainees / unlockedCount);
+            let extra = remainingTrainees % unlockedCount;
+
+            committeeDistribution.forEach(c => {
+                if (!c.locked) {
+                    c.count = base + (extra > 0 ? 1 : 0);
+                    if (extra > 0) extra--;
+                }
+            });
         }
 
         function deleteCommittee(index) {
@@ -2839,7 +4403,23 @@
         }
 
         function resetDistribution() {
-            initCommitteeDistribution();
+            const rooms = committeeCount;
+            const n = totalTraineesCount;
+            const base = Math.floor(n / rooms);
+            const extra = n % rooms;
+
+            // Reset distribution but keep custom names
+            for (let i = 0; i < committeeDistribution.length; i++) {
+                // Reset count
+                committeeDistribution[i].count = base + (i < extra ? 1 : 0);
+                committeeDistribution[i].locked = false;
+
+                // Reset name only if not custom
+                if (!committeeDistribution[i].isNameCustom) {
+                    committeeDistribution[i].name = `لجنة ${i + 1}`;
+                }
+            }
+
             renderCommitteeTable();
             showToast('تم إعادة ضبط التوزيع المتساوي', 'success');
         }
@@ -2895,8 +4475,10 @@
                 const semester = trainees[0] ? (trainees[0]['الفصل التدريبي'] || '') : '';
 
                 // Use committeeDistribution for customized distribution
-                // Filter out committees with 0 trainees (cancelled)
-                const activeCommittees = committeeDistribution.filter(c => c.count > 0);
+                // Filter out committees with 0 trainees (cancelled), keep original index
+                const activeCommittees = committeeDistribution
+                    .map((c, idx) => ({ ...c, originalIndex: idx }))
+                    .filter(c => c.count > 0);
 
                 if (activeCommittees.length === 0) {
                     showToast('جميع اللجان فارغة. أعد توزيع المتدربين.', 'error');
@@ -2910,6 +4492,8 @@
                     const committee = activeCommittees[i];
                     const size = committee.count;
                     const roomName = committee.name;
+                    // Get room number from committeeRooms using original index
+                    const roomNumber = committeeRooms[committee.originalIndex]?.room || '';
                     const group = trainees.slice(start, start + size);
                     const firstId = group[0] ? group[0]['رقم المتدرب'] : '-';
                     const lastId = group[group.length - 1] ? group[group.length - 1]['رقم المتدرب'] : '-';
@@ -2936,9 +4520,20 @@
                         rangeValue = firstLetter === lastLetter ? firstLetter : `${firstLetter} - ${lastLetter}`;
                     }
 
+
+
                     // Split committee into pages based on traineesPerPage
-                    const perPage = traineesPerPage || 20;
+                    // If traineesPerPage is empty or <= 0, treat as Infinity (all in one page)
+                    let perPageInput = document.getElementById('traineesPerPage').value;
+                    let perPage = (perPageInput && perPageInput > 0) ? parseInt(perPageInput) : (group.length || 1);
+
                     const totalPages = Math.ceil(group.length / perPage);
+
+                    // Extract College and Semester from the first record of the group (or global data if available)
+                    // Fallback to defaults if missing
+                    const sampleRecord = group[0] || (sf01Data && sf01Data.length > 0 ? sf01Data[0] : {});
+                    const collegeName = sampleRecord['الوحدة'] || 'الكلية التقنية';
+                    const semester = sampleRecord['الفصل التدريبي'] || '';
 
                     for (let pageNum = 0; pageNum < totalPages; pageNum++) {
                         const pageStart = pageNum * perPage;
@@ -2949,40 +4544,94 @@
                         html += `
                     <div class="report-page">
                         <div class="report-section">
-                            <table class="report-table">
+                            <table class="report-table" style="table-layout: fixed; width: 100%; margin-top: 10px;">
+                                <colgroup>
+                                    <col style="width: 4%;">
+                                    <col style="width: 11%;">
+                                    <col style="width: 22%;">
+                                    <col style="width: 18%;">
+                                    <col style="width: 9%;">
+                                    <col style="width: 20%;">
+                                    <col style="width: 16%;">
+                                </colgroup>
                                 <thead>
-                                    <tr class="header-row">
-                                        <th colspan="7" style="background:#fff; border:none; padding:0;">
-                                            <div class="report-header">
-                                                <div class="header-top-row">
-                                                    <span class="header-right"><strong>الفصل التدريبي:</strong> ${semester}</span>
-                                                    <span class="header-center"><strong>الكلية:</strong> ${collegeName}</span>
-                                                    <span class="header-left"></span>
+                                    <tr class="header-row" style="background-color: #fff !important;">
+                                        <th colspan="7" style="background-color: #fff !important; border:none; padding:0;">
+                                            
+                                            <div class="report-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; border-bottom: 1px solid #ccc; padding: 10px; direction: rtl; background: #fff;">
+                                                
+                                                <!-- Right Side (Institution Info) -->
+                                                <div style="width: 30%; text-align: center; font-weight: bold; font-family: 'Amiri', 'Tajawal', sans-serif; font-size: 14px; line-height: 1.6;">
+                                                    <div style="white-space:nowrap; font-size:12px;">المملكة العربية السعودية</div>
+                                                    <div style="white-space:nowrap; font-size:12px;">المؤسسة العامة للتدريب التقني والمهني</div>
+                                                    <div>${collegeName}</div>
+                                                    <div>${semester}</div>
                                                 </div>
-                                                <h2>لجنة / قاعة: ${roomName}${pageLabel}</h2>
-                                                <div class="info">
-                                                    <span><strong>المقررات:</strong> ${courseNames}</span>
-                                                    <span><strong>${rangeLabel}:</strong> ${rangeValue}</span>
-                                                    <span><strong>العدد:</strong> ${group.length} متدرب</span>
+
+                                                <!-- Center (Logo Only) -->
+                                                <div style="width: 30%; text-align: center;">
+                                                    <img src="pic/logo.png" alt="Logo" style="max-height: 100px; width: auto;">
+                                                </div>
+
+                                                <!-- Left Side (Committee Info) -->
+                                                <div style="width: 35%; text-align: center; font-weight: bold; font-family: 'Amiri', 'Tajawal', sans-serif; font-size: 14px; line-height: 1.6;">
+                                                    <div style="margin-bottom: 2px; font-size: 20px; font-weight:bold;">${roomName}</div>
+                                                    ${roomNumber ? `<div style="margin-bottom: 2px; font-size: 18px; font-weight:bold; color:#444;">قاعة: ${roomNumber}</div>` : ''}
+                                                    <div>عدد المتدربين: <span style="font-weight:normal;">${group.length}</span></div>
                                                 </div>
                                             </div>
+
                                         </th>
                                     </tr>
-                                    <tr><th>#</th><th>رقم المتدرب</th><th>اسم المتدرب</th><th>اسم المقرر</th><th>الرقم المرجعي</th><th>المدرب</th><th>توقيع المتدرب</th></tr>
+                                    <tr style="background-color: #ABD8AE;">
+                                        <th style="background-color: #ABD8AE !important;">#</th>
+                                        <th style="background-color: #ABD8AE !important;">رقم المتدرب</th>
+                                        <th style="background-color: #ABD8AE !important;">اسم المتدرب</th>
+                                        <th style="background-color: #ABD8AE !important;">اسم المقرر</th>
+                                        <th style="background-color: #ABD8AE !important;">الرقم المرجعي</th>
+                                        <th style="background-color: #ABD8AE !important;">المدرب</th>
+                                        <th style="background-color: #ABD8AE !important;">توقيع المتدرب</th>
+                                    </tr>
                                 </thead>
                                 <tbody>
                                     ${pageGroup.map((t, idx) => `
                                         <tr>
-                                            <td>${pageStart + idx + 1}</td>
-                                            <td>${t['رقم المتدرب'] || ''}</td>
-                                            <td>${t['إسم المتدرب'] || t['اسم المتدرب'] || ''}</td>
-                                            <td>${t['اسم المقرر'] || ''}</td>
-                                            <td>${t['الرقم المرجعي'] || ''}</td>
-                                            <td>${t['المدرب'] || ''}</td>
+                                            <td style="overflow: hidden !important;">${pageStart + idx + 1}</td>
+                                            <td style="overflow: hidden !important;">${t['رقم المتدرب'] || ''}</td>
+                                            <td style="overflow: hidden !important;">${t['إسم المتدرب'] || t['اسم المتدرب'] || ''}</td>
+                                            <td style="overflow: hidden !important;">${t['اسم المقرر'] || ''}</td>
+                                            <td style="overflow: hidden !important;">${t['الرقم المرجعي'] || ''}</td>
+                                            <td style="overflow: hidden !important;">${t['المدرب'] || ''}</td>
                                             <td></td>
                                         </tr>
                                     `).join('')}
                                 </tbody>
+                                </tbody>
+                                ${document.getElementById('showSignatureFooter')?.checked ? `
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="7" style="border: none; padding-top: 20px;">
+                                            <table style="width: 100%; border-collapse: collapse; border: 1px solid #000; table-layout: fixed;">
+                                                <colgroup>
+                                                    <col style="width: 33.33%;">
+                                                    <col style="width: 33.33%;">
+                                                    <col style="width: 33.34%;">
+                                                </colgroup>
+                                                <tr>
+                                                    <td style="width: 33.33%; border: 1px solid #000; padding: 8px; text-align: right; font-weight: bold; font-size: 11px;">المراقب الأول:</td>
+                                                    <td style="width: 33.33%; border: 1px solid #000; padding: 8px; text-align: right; font-weight: bold; font-size: 11px;">المراقب الثاني:</td>
+                                                    <td style="width: 33.33%; border: 1px solid #000; padding: 8px; text-align: right; font-weight: bold; font-size: 11px;">رئيس اللجنة:</td>
+                                                </tr>
+                                                <tr>
+                                                    <td style="width: 33.33%; height: 40px; border: 1px solid #000; padding: 8px; text-align: right; font-size: 11px;">التوقيع:</td>
+                                                    <td style="width: 33.33%; height: 40px; border: 1px solid #000; padding: 8px; text-align: right; font-size: 11px;">التوقيع:</td>
+                                                    <td style="width: 33.33%; height: 40px; border: 1px solid #000; padding: 8px; text-align: right; font-size: 11px;">التوقيع:</td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                                ` : ''}
                             </table>
                         </div>
                     </div>
@@ -2992,6 +4641,25 @@
                 }
 
                 document.getElementById('reportsContainer').innerHTML = html;
+
+                // Auto-fit text in table cells
+                // Auto-fit text in table cells
+                setTimeout(() => {
+                    const cells = document.querySelectorAll('.report-table td');
+                    cells.forEach(cell => {
+                        let size = 12; // Start with requested size
+                        cell.style.fontSize = size + 'px';
+
+                        // Decrease size until content fits vertically (max 45px height)
+                        // Allow 1px tolerance
+                        while (cell.scrollHeight > cell.clientHeight + 1 && size > 8) {
+                            size -= 0.5;
+                            cell.style.fontSize = size + 'px';
+                        }
+                    });
+                }, 100);
+
+
 
             } catch (e) {
                 console.error('Error generating reports:', e);
@@ -3038,66 +4706,77 @@
             }
         }
 
-        function updateRowHeight() {
-            const level = parseInt(document.getElementById('rowHeightSlider').value);
-            const labelEl = document.getElementById('rowHeightLabel');
-            const container = document.querySelector('.wizard-container');
+        let currentBaseFontSize = 12; // Base font size, updated by density slider
 
-            // Map levels to padding values and labels
-            const paddingMap = {
-                1: { padding: '2px 5px', label: 'صغير جداً' },
-                2: { padding: '4px 5px', label: 'صغير' },
-                3: { padding: '6px 5px', label: 'متوسط' },
-                4: { padding: '8px 5px', label: 'كبير' },
-                5: { padding: '10px 5px', label: 'كبير جداً' }
-            };
+        function autoFitText() {
+            const cells = document.querySelectorAll('.report-table td');
+            cells.forEach(cell => {
+                let size = currentBaseFontSize; // Start with the density-appropriate size
+                cell.style.fontSize = size + 'px';
 
-            const config = paddingMap[level];
-            labelEl.textContent = config.label;
-
-            // Set CSS custom property on container - this affects print CSS too!
-            container.style.setProperty('--row-padding', config.padding);
-
-            // Also apply inline for immediate visual feedback
-            document.querySelectorAll('.report-table td').forEach(cell => {
-                cell.style.padding = config.padding;
+                // Decrease size until content fits vertically (max based on current height)
+                // We compare scrollHeight (full content) vs clientHeight (fixed height)
+                // Allow 1px tolerance
+                while (cell.scrollHeight > cell.clientHeight + 1 && size > 5) {
+                    size -= 0.5;
+                    cell.style.fontSize = size + 'px';
+                }
             });
         }
 
+        // Initialize with default level
+        setTimeout(() => setRowHeight(3), 200);
+
         function setRowHeight(level) {
-            const container = document.querySelector('.wizard-container');
+            const labelEl = document.getElementById('rowHeightLabel');
 
-            // Map levels to padding values
-            const paddingMap = {
-                1: '2px 5px',
-                2: '4px 5px',
-                3: '6px 5px',
-                4: '8px 5px',
-                5: '10px 5px'
-            };
-
-            const padding = paddingMap[level];
-
-            // Update circle styles
+            // Update active state in UI
             document.querySelectorAll('.row-height-circle').forEach(circle => {
-                const circleLevel = parseInt(circle.getAttribute('data-level'));
-                if (circleLevel === level) {
+                circle.classList.remove('active');
+                circle.style.background = 'var(--bg-header)';
+                circle.style.borderColor = 'var(--border-dark)';
+                if (parseInt(circle.dataset.level) === level) {
+                    circle.classList.add('active');
                     circle.style.background = 'var(--accent-green)';
-                    circle.style.border = '3px solid var(--accent-green)';
-                } else {
-                    circle.style.background = 'var(--bg-header)';
-                    circle.style.border = '3px solid var(--border-dark)';
+                    circle.style.borderColor = 'var(--accent-green)';
                 }
             });
 
-            // Set CSS custom property on container - affects print CSS too!
-            container.style.setProperty('--row-padding', padding);
+            // Map levels to height values (px) AND base font sizes AND padding
+            const configMap = {
+                1: { height: 35, fontSize: 10, padding: '2px', label: 'صغير جداً' },
+                2: { height: 40, fontSize: 11, padding: '3px', label: 'صغير' },
+                3: { height: 45, fontSize: 12, padding: '4px', label: 'متوسط' },
+                4: { height: 50, fontSize: 12, padding: '6px', label: 'كبير' },
+                5: { height: 55, fontSize: 12, padding: '8px', label: 'كبير جداً' }
+            };
 
-            // Apply inline for immediate visual feedback
-            document.querySelectorAll('.report-table td').forEach(cell => {
-                cell.style.padding = padding;
+            const config = configMap[level] || configMap[3];
+            if (labelEl) labelEl.textContent = config.label;
+
+            // Update global base font size
+            currentBaseFontSize = config.fontSize;
+
+            // Set CSS variable
+            document.documentElement.style.setProperty('--print-row-height', config.height + 'px');
+
+            // FORCE inline styles on all cells to ensure print rendering respects it
+            // This bypasses potential CSS specificity or variable caching issues in print
+            const cells = document.querySelectorAll('.report-table td');
+            cells.forEach(cell => {
+                cell.style.height = config.height + 'px';
+                cell.style.padding = config.padding;
+                // Ensure line-height allows tight packing
+                cell.style.lineHeight = (config.fontSize * 1.2) + 'px';
             });
+
+            // Trigger auto-fit after a brief delay to allow CSS calculation
+            setTimeout(() => {
+                autoFitText();
+            }, 50);
         }
+
+
 
 
 
@@ -3129,14 +4808,22 @@
             tempTable.id = 'tempExportTable';
             tempTable.style.display = 'none';
 
-            // Add info header rows first (8 columns now)
+            // New header structure (without courses and total count):
+            // Row 0: Title (colspan 6) | Logo area (colspan 2)
+            // Row 1: College label | College value (colspan 5) | Logo area
+            // Row 2: Semester label | Semester value (colspan 5) | Logo area
+            // Row 3: Committee label | Committee value (colspan 5) | Logo area
+            // Row 4: Room label | Room value (colspan 5) | (empty)
+            // Row 5: Empty separator row
+            // Row 6: Column headers
+
             const thead = document.createElement('thead');
             thead.innerHTML = `
                 <tr><th colspan="8">توزيع المتدربين على لجان الاختبارات</th></tr>
-                <tr><td>المقررات:</td><td colspan="7">${courseNames}</td></tr>
-                <tr><td>الكلية / الوحدة:</td><td colspan="7">${collegeName}</td></tr>
-                <tr><td>الفصل التدريبي:</td><td colspan="7">${semester}</td></tr>
-                <tr><td>إجمالي المتدربين:</td><td colspan="7">${totalTrainees}</td></tr>
+                <tr><td>الكلية / الوحدة:</td><td colspan="5">${collegeName}</td><td colspan="2" data-logo="true"></td></tr>
+                <tr><td>الفصل التدريبي:</td><td colspan="5">${semester}</td><td colspan="2" data-logo="true"></td></tr>
+                <tr><td>اسم اللجنة:</td><td colspan="5" data-committee-name="true"></td><td colspan="2" data-logo="true"></td></tr>
+                <tr><td>رقم القاعة:</td><td colspan="5" data-room-number="true"></td><td colspan="2"></td></tr>
                 <tr><td colspan="8"></td></tr>
                 <tr>
                     <th>اللجنة</th>
@@ -3279,8 +4966,23 @@
                 committees.forEach((rows, committeeName) => {
                     sheetIndex++;
 
-                    // Build sheet data: headers + committee rows
-                    const sheetData = [...headerRows, ...rows];
+                    // Clone header rows and customize for this committee
+                    const customHeaderRows = headerRows.map((row, rowIdx) => {
+                        const newRow = [...row];
+                        if (rowIdx === 3) {
+                            // Row 3: اسم اللجنة - fill with committee name
+                            newRow[1] = committeeName;
+                        } else if (rowIdx === 4) {
+                            // Row 4: رقم القاعة - find room number for this committee
+                            const committeeIdx = committeeDistribution.findIndex(c => c.name === committeeName);
+                            const roomObj = committeeIdx >= 0 ? committeeRooms[committeeIdx] : null;
+                            newRow[1] = roomObj?.room || '';
+                        }
+                        return newRow;
+                    });
+
+                    // Build sheet data: customized headers + committee rows
+                    const sheetData = [...customHeaderRows, ...rows];
 
                     // Add signature section at end
                     const dataEndRow = sheetData.length;
@@ -3391,6 +5093,10 @@
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
+            // Don't trigger navigation when typing in input fields
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+            // For RTL: Left arrow = next (forward), Right arrow = previous (back)
             if (e.key === 'ArrowLeft') nextStep();
             if (e.key === 'ArrowRight') previousStep();
             if (e.ctrlKey && e.key === 'p') { e.preventDefault(); window.print(); }
